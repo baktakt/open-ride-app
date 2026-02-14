@@ -38,6 +38,40 @@
   }
 }
 
+/* ===== Legal links row inside Settings page (mobile-focused) ===== */
+.settings-legal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1.5rem 0 0.5rem;
+}
+
+.settings-legal-link {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.settings-legal-link:hover {
+  color: var(--primary-blue);
+}
+
+.settings-legal-sep {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  opacity: 0.4;
+}
+
+/* On desktop the footer already shows these links; hide the in-settings
+   row there so they only appear once. */
+@media (min-width: 769px) {
+  .settings-legal {
+    display: none;
+  }
+}
+
 /* ===== Legal Pages (Terms & Privacy) ===== */
 .legal-page {
   min-height: 100vh;

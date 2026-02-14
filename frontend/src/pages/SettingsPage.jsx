@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
 import { loadAiSettings, saveAiSettings } from '../services/aiWorkoutGenerator';
 import { downloadExport, importFromFile, loadCustomWorkouts } from '../services/dataManager';
 import '../styles/settings.css';
+import '../styles/legal.css';
 
 const DEFAULT_SETTINGS = {
   ftp: 200,
@@ -638,6 +640,12 @@ export default function SettingsPage() {
             <div className="settings-actions">
               <button className="btn-secondary" onClick={handleReset}>Reset to Defaults</button>
               <button className="btn-primary" onClick={handleSave}>Save Settings</button>
+            </div>
+
+            <div className="settings-legal">
+              <Link to="/terms" className="settings-legal-link">Terms of Service</Link>
+              <span className="settings-legal-sep">&middot;</span>
+              <Link to="/privacy" className="settings-legal-link">Privacy Policy</Link>
             </div>
 
             <div id="save-toast" className={`save-toast ${showToast ? 'visible' : ''}`}>
