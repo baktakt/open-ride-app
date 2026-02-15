@@ -67,6 +67,7 @@ export default function SettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [importStatus, setImportStatus] = useState(null); // null | 'success' | 'error'
   const [importMessage, setImportMessage] = useState('');
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [form, setForm] = useState(() => {
     const settings = loadSettings();
     return {
@@ -145,6 +146,11 @@ export default function SettingsPage() {
       weight: convertWeight(defaults.weight, defaults.units),
       bikeWeight: convertWeight(defaults.bikeWeight, defaults.units)
     });
+  };
+
+  const handleClearAllData = () => {
+    localStorage.clear();
+    window.location.reload();
   };
 
   const handleEmulatorToggle = () => {
@@ -589,6 +595,26 @@ export default function SettingsPage() {
                     {importMessage}
                   </div>
                 )}
+
+                <div className="data-mgmt-row data-mgmt-row--danger">
+                  <div className="setting-info">
+                    <label>Clear All Data</label>
+                    <p className="setting-description">
+                      Permanently delete everything stored by Open Ride in this browser — settings,
+                      ride history, training program, custom workouts, and your AI API key.
+                      <strong> This cannot be undone.</strong>
+                    </p>
+                  </div>
+                  <button
+                    className="btn-danger data-mgmt-btn"
+                    onClick={() => setShowClearConfirm(true)}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                    </svg>
+                    Clear All Data
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -659,6 +685,33 @@ export default function SettingsPage() {
       </main>
 
       <DeviceModal isOpen={isDeviceModalOpen} onClose={() => setIsDeviceModalOpen(false)} />
+
+      {showClearConfirm && (
+        <div className="clear-data-overlay" onClick={() => setShowClearConfirm(false)}>
+          <div className="clear-data-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="clear-data-modal-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+            </div>
+            <h3>Clear all data?</h3>
+            <p>This will permanently delete everything Open Ride has stored in this browser:</p>
+            <ul className="clear-data-list">
+              <li>Settings and athlete profile</li>
+              <li>Ride history</li>
+              <li>Training program</li>
+              <li>Custom and AI-generated workouts</li>
+              <li>Device preferences</li>
+              <li>AI API key</li>
+            </ul>
+            <p className="clear-data-warning">This action cannot be undone. Export a backup first if you want to keep your data.</p>
+            <div className="clear-data-modal-actions">
+              <button className="btn-secondary" onClick={() => setShowClearConfirm(false)}>Cancel</button>
+              <button className="btn-danger" onClick={handleClearAllData}>Yes, clear everything</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

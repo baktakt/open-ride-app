@@ -189,9 +189,18 @@ Plan your week by assigning workouts to each day of the week. Drag and drop to r
 
 Generate a personalised workout on the fly using an LLM. Answer a few questions — duration, training goal, intensity, fitness level — and the AI creates a structured `.orw` workout tailored to you.
 
-- Bring your own API key (OpenAI or Anthropic) — the key is stored only in your browser and sent directly to the AI provider; it never touches Open Ride servers
+- Bring your own API key (OpenAI or Anthropic) — **this is entirely optional**; the key is stored only in your browser and sent directly to the AI provider; it never touches Open Ride servers
 - Generated workouts are saved to **My Workouts** and stored in `localStorage` — no account or backend needed
 - Works offline after first generation (saved workouts persist locally)
+
+> **API key security notice:** Bringing your own API key is optional and should be done with caution.
+> Your key is stored in your browser's `localStorage` and is readable by anyone with access to
+> DevTools on your machine. Browser extensions may also be able to read it. Open Ride loads no
+> external scripts, which removes the main XSS vector, but you remain responsible for the security
+> of your own device and browser environment.
+> **The authors and contributors of Open Ride accept no liability for any leakage, theft, or
+> unauthorized use of API keys entered into this application.**
+> If you use a shared or public computer, use private/incognito mode and clear site data when done.
 
 ### My Workouts
 

@@ -407,6 +407,101 @@
   color: #ff8080;
 }
 
+/* Danger button */
+.btn-danger {
+  padding: 0.875rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: rgba(220, 38, 38, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+}
+
+.btn-danger:hover {
+  background: rgba(220, 38, 38, 0.25);
+  border-color: rgba(220, 38, 38, 0.6);
+  color: #fca5a5;
+}
+
+/* Danger data management row */
+.data-mgmt-row--danger {
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+/* Clear all data confirmation overlay */
+.clear-data-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.clear-data-modal {
+  background: #1a1a2e;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+.clear-data-modal-icon {
+  color: #f87171;
+  margin-bottom: 1rem;
+}
+
+.clear-data-modal h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+  color: var(--text-primary);
+}
+
+.clear-data-modal p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.clear-data-list {
+  margin: 0 0 1rem 1.25rem;
+  padding: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.clear-data-warning {
+  font-size: 0.85rem;
+  color: #f87171;
+  font-weight: 500;
+  margin-bottom: 1.5rem !important;
+}
+
+.clear-data-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.clear-data-modal-actions .btn-secondary {
+  padding: 0.7rem 1.5rem;
+}
+
+.clear-data-modal-actions .btn-danger {
+  padding: 0.7rem 1.5rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .settings-wrapper {
