@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
-import { deleteCustomWorkout } from '../services/aiWorkoutGenerator';
+import { deleteCustomWorkout, renameCustomWorkout } from '../services/aiWorkoutGenerator';
 import {
   loadCachedWorkouts,
   loadCachedWorkoutsTimestamp,
@@ -23,6 +23,9 @@ export default function HomePage() {
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
   const [rideHistory, setRideHistory] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const renameInputRef = useRef(null);
   const [myWorkouts, setMyWorkouts] = useState(() => loadCustomWorkouts());
   const [apiStatus, setApiStatus] = useState('loading'); // 'loading' | 'ok' | 'cached' | 'offline'
   const [cachedAt, setCachedAt] = useState(null);
@@ -225,6 +228,45 @@ export default function HomePage() {
     }
   }, []);
 
+  const handleStartRename = useCallback((e, workout) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setRenamingId(workout.id);
+    setRenameValue(workout.name);
+  }, []);
+
+  const handleConfirmRename = useCallback(() => {
+    const trimmed = renameValue.trim();
+    if (trimmed && renamingId) {
+      renameCustomWorkout(renamingId, trimmed);
+      setMyWorkouts(loadCustomWorkouts());
+    }
+    setRenamingId(null);
+    setRenameValue('');
+  }, [renameValue, renamingId]);
+
+  const handleCancelRename = useCallback(() => {
+    setRenamingId(null);
+    setRenameValue('');
+  }, []);
+
+  const handleRenameKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleConfirmRename();
+    } else if (e.key === 'Escape') {
+      handleCancelRename();
+    }
+  }, [handleConfirmRename, handleCancelRename]);
+
+  // Focus rename input when it appears
+  useEffect(() => {
+    if (renamingId && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingId]);
+
   const durationLabels = { short: '0\u201330 min', medium: '31\u201360 min', long: '60+ min' };
   const isApiUnavailable = apiStatus === 'cached' || apiStatus === 'offline';
   const cachedDate = cachedAt ? new Date(cachedAt) : null;
@@ -312,7 +354,22 @@ export default function HomePage() {
                             </div>
                             <div className="workout-card-content">
                               <div className="workout-type">AI Generated</div>
-                              <h3 className="workout-title">{workout.name}</h3>
+                              {renamingId === workout.id ? (
+                                <div className="workout-rename-row" onClick={(e) => e.preventDefault()}>
+                                  <input
+                                    ref={renameInputRef}
+                                    type="text"
+                                    className="workout-rename-input"
+                                    value={renameValue}
+                                    onChange={(e) => setRenameValue(e.target.value)}
+                                    onKeyDown={handleRenameKeyDown}
+                                    onBlur={handleConfirmRename}
+                                    maxLength={80}
+                                  />
+                                </div>
+                              ) : (
+                                <h3 className="workout-title">{workout.name}</h3>
+                              )}
                               <div className="workout-meta">
                                 <div className="workout-meta-item">
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -329,17 +386,29 @@ export default function HomePage() {
                               )}
                             </div>
                           </Link>
-                          <button
-                            className={`workout-card-delete ${deletingId === workout.id ? 'deleting' : ''}`}
-                            onClick={(e) => handleDeleteCustomWorkout(e, workout.id)}
-                            disabled={deletingId === workout.id}
-                            aria-label="Delete workout"
-                            title="Delete workout"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                            </svg>
-                          </button>
+                          <div className="workout-card-actions">
+                            <button
+                              className="workout-card-rename"
+                              onClick={(e) => handleStartRename(e, workout)}
+                              aria-label="Rename workout"
+                              title="Rename workout"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                              </svg>
+                            </button>
+                            <button
+                              className={`workout-card-delete ${deletingId === workout.id ? 'deleting' : ''}`}
+                              onClick={(e) => handleDeleteCustomWorkout(e, workout.id)}
+                              disabled={deletingId === workout.id}
+                              aria-label="Delete workout"
+                              title="Delete workout"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                              </svg>
+                            </button>
+                          </div>
                         </div>
                       );
                     })}

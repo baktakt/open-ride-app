@@ -71,6 +71,24 @@ export function removeCustomWorkoutLocally(id) {
   persistCustomWorkouts(list);
 }
 
+/**
+ * Rename a custom workout in localStorage.
+ * Updates both the stored name and the <name> tag inside the raw XML.
+ */
+export function renameCustomWorkoutLocally(id, newName) {
+  const list = loadCustomWorkouts();
+  const idx = list.findIndex(w => w.id === id);
+  if (idx < 0) return;
+  list[idx].name = newName;
+  if (list[idx].xml) {
+    list[idx].xml = list[idx].xml.replace(
+      /<name>[^<]*<\/name>/,
+      `<name>${newName}</name>`
+    );
+  }
+  persistCustomWorkouts(list);
+}
+
 // ─── Cached backend workouts (for offline use) ──────────────────────────────
 
 export function loadCachedWorkouts() {

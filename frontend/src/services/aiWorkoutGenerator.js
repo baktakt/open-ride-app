@@ -8,7 +8,7 @@
  *   { provider: 'openai' | 'anthropic', apiKey: string }
  */
 
-import { saveCustomWorkoutLocally, removeCustomWorkoutLocally } from './dataManager.js';
+import { saveCustomWorkoutLocally, removeCustomWorkoutLocally, renameCustomWorkoutLocally } from './dataManager.js';
 import { parseOrwXml } from './workoutParser.js';
 
 const AI_SETTINGS_KEY = 'openride_ai_settings';
@@ -257,11 +257,21 @@ export async function generateWorkout(params) {
 /**
  * Parse and save a generated workout entirely client-side.
  * No backend call is made — the workout lives in localStorage only.
- * Returns the full parsed workout object (same shape as /api/workouts/:id).
+ *
+ * @param {string} xml           Raw .orw XML
+ * @param {string} [customName]  Optional name override. When provided the
+ *                                <name> tag in the XML is replaced before
+ *                                parsing so the custom name flows through to
+ *                                the id, display name, and stored XML.
+ * @returns {object} The full parsed workout object (same shape as /api/workouts/:id).
  */
-export function saveWorkout(xml) {
-  const parsed = parseOrwXml(xml); // generates id + parses all elements
-  saveCustomWorkoutLocally({ ...parsed, xml });
+export function saveWorkout(xml, customName) {
+  let finalXml = xml;
+  if (customName && customName.trim()) {
+    finalXml = xml.replace(/<name>[^<]*<\/name>/, `<name>${customName.trim()}</name>`);
+  }
+  const parsed = parseOrwXml(finalXml);
+  saveCustomWorkoutLocally({ ...parsed, xml: finalXml });
   return parsed;
 }
 
@@ -270,4 +280,11 @@ export function saveWorkout(xml) {
  */
 export function deleteCustomWorkout(id) {
   removeCustomWorkoutLocally(id);
+}
+
+/**
+ * Rename a custom workout in localStorage.
+ */
+export function renameCustomWorkout(id, newName) {
+  renameCustomWorkoutLocally(id, newName);
 }
