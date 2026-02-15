@@ -1,0 +1,276 @@
+/* ===== Help Page ===== */
+.help-page {
+  min-height: 100vh;
+  background: var(--body-gradient);
+}
+
+.help-content {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 3rem 2rem 4rem;
+}
+
+.help-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-blue);
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+  transition: opacity 0.15s;
+}
+
+.help-back-link:hover {
+  opacity: 0.75;
+}
+
+.help-content h1 {
+  font-size: 2.2rem;
+  color: var(--text-primary);
+  margin-bottom: 0.4rem;
+}
+
+.help-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 2.5rem;
+}
+
+/* ---- Sections ---- */
+.help-section {
+  background: var(--section-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.help-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-section-header svg {
+  color: #00d4ff;
+  flex-shrink: 0;
+}
+
+.help-section-header h2 {
+  font-size: 1.15rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.help-text {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin-bottom: 0.75rem;
+}
+
+.help-text:last-child {
+  margin-bottom: 0;
+}
+
+.help-text a {
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+
+.help-text a:hover {
+  text-decoration: underline;
+}
+
+.help-list {
+  margin: 0.5rem 0 0.75rem 1.5rem;
+  padding: 0;
+}
+
+.help-list li {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin-bottom: 0.35rem;
+}
+
+.help-list a {
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+
+.help-list a:hover {
+  text-decoration: underline;
+}
+
+.help-list code {
+  background: var(--overlay-md);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--primary-blue);
+}
+
+.help-text code {
+  background: var(--overlay-md);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--primary-blue);
+}
+
+/* ---- Getting Started Steps ---- */
+.help-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.help-step {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.help-step-number {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.1rem;
+}
+
+.help-step-content h3 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0 0 0.35rem;
+}
+
+.help-step-content p {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.help-step-content a {
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+
+.help-step-content a:hover {
+  text-decoration: underline;
+}
+
+/* ---- FAQ ---- */
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.faq-item {
+  background: var(--overlay-xs);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.faq-item.open {
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.faq-question:hover {
+  background: var(--overlay-sm);
+}
+
+.faq-chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.faq-item.open .faq-chevron {
+  transform: rotate(180deg);
+}
+
+.faq-answer {
+  padding: 0 1.25rem 1rem;
+}
+
+.faq-answer p {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin: 0;
+}
+
+/* ---- Mobile ---- */
+@media (max-width: 768px) {
+  .help-content {
+    padding: 2rem 1rem 5.5rem;
+  }
+
+  .help-content h1 {
+    font-size: 1.7rem;
+  }
+
+  .help-subtitle {
+    font-size: 0.92rem;
+    margin-bottom: 2rem;
+  }
+
+  .help-section {
+    padding: 1.25rem 1rem;
+    border-radius: 10px;
+  }
+
+  .help-step {
+    gap: 0.75rem;
+  }
+
+  .help-step-number {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    font-size: 0.8rem;
+  }
+
+  .faq-question {
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .faq-answer {
+    padding: 0 1rem 0.875rem;
+  }
+}
