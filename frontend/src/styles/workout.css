@@ -827,6 +827,7 @@ body.workout-page {
 .settings-panel-input input:focus {
   outline: none;
   border-color: #ff6b00;
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
 }
 
 .settings-panel-input span {

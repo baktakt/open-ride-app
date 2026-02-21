@@ -82,7 +82,8 @@
   flex: 1;
 }
 
-.setting-info label {
+.setting-info label,
+.setting-info .setting-label-text {
   display: block;
   font-weight: 500;
   margin-bottom: 0.25rem;
@@ -120,7 +121,7 @@
 .setting-input select:focus {
   outline: none;
   border-color: #00d4ff;
-  background: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
 }
 
 .setting-input select {

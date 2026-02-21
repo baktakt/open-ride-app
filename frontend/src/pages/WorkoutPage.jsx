@@ -610,7 +610,7 @@ export default function WorkoutPage() {
       <TopBar onDeviceScanClick={() => setIsDeviceModalOpen(true)} />
 
       {showPreview ? (
-        <main className="workout-preview">
+        <main id="main-content" className="workout-preview">
           <div className="preview-content">
             <h1>{workout.name}</h1>
             <p className="workout-description">{workout.description}</p>
@@ -639,7 +639,7 @@ export default function WorkoutPage() {
           </div>
         </main>
       ) : (
-      <main className="workout-main">
+      <main id="main-content" className="workout-main">
         <div className="workout-graph-container">
           <WorkoutGraph executionPlan={executionPlan} elapsedSeconds={elapsedSeconds} totalDuration={totalDuration} ftp={ftp} />
           <div

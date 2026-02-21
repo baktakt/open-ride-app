@@ -223,7 +223,7 @@ export default function TrainingProgramPage() {
     <div>
       <TopBar onDeviceScanClick={() => setIsDeviceModalOpen(true)} />
 
-      <main className="main-content">
+      <main id="main-content" className="main-content">
         <div className="content-wrapper">
           {/* Page Header */}
           <section className="tp-header">

@@ -287,6 +287,7 @@
 .ai-name-input:focus {
   outline: none;
   border-color: #00d4ff;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
 }
 
 .ai-name-input::placeholder {
@@ -311,6 +312,7 @@
 .ai-notes-input:focus {
   outline: none;
   border-color: #00d4ff;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
 }
 
 .ai-notes-input::placeholder {
@@ -535,7 +537,11 @@
   padding: 0.375rem 0.625rem;
   font-family: inherit;
   box-sizing: border-box;
+}
+
+.ai-preview-name-input:focus {
   outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
 }
 
 .ai-preview-duration {

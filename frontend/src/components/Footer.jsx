@@ -10,7 +10,7 @@ export default function Footer() {
       <span className="site-footer__copy">
         &copy; {year} Open Ride. All rights reserved.
       </span>
-      <nav className="site-footer__links">
+      <nav className="site-footer__links" aria-label="Footer navigation">
         <Link to="/terms" className="site-footer__link">Terms of Service</Link>
         <Link to="/privacy" className="site-footer__link">Privacy Policy</Link>
       </nav>

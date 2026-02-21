@@ -279,7 +279,7 @@ export default function HomePage() {
     <div>
       <TopBar onDeviceScanClick={() => setIsDeviceModalOpen(true)} />
 
-      <main className="main-content">
+      <main id="main-content" className="main-content">
         <div className="content-wrapper">
           {/* Hero Section */}
           <section className="hero-section">

@@ -6,6 +6,30 @@
   padding: 0;
 }
 
+/* ── WCAG 2.4.7 / 2.4.11 – Visible keyboard focus indicator ─────────── */
+:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 3px;
+}
+
+/* ── WCAG 2.4.1 – Skip navigation link ──────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 0;
+  z-index: 9999;
+  padding: 0.75rem 1.25rem;
+  background: var(--primary-blue);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 0 0 8px 0;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 0;
+}
+
 :root {
   /* Brand fonts */
   --font-headline: 'Teko', 'Arial Narrow', sans-serif;
@@ -397,6 +421,7 @@ h1, h2, h3, h4 {
   outline: none;
   border-color: var(--primary-blue);
   background: var(--overlay-md);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.25);
 }
 
 .filter-search-clear {
@@ -1385,6 +1410,7 @@ h1, h2, h3, h4 {
 .input-group input:focus {
   outline: none;
   border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.25);
 }
 
 .stats-row {
@@ -1867,7 +1893,11 @@ h1, h2, h3, h4 {
   padding: 0.3rem 0.5rem;
   font-family: inherit;
   box-sizing: border-box;
+}
+
+.workout-rename-input:focus {
   outline: none;
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.25);
 }
 
 /* ── Theme toggle button ─────────────────────────────────────────────── */

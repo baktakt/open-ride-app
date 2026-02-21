@@ -697,6 +697,12 @@
   outline: none;
 }
 
+.tp-picker-search input:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .tp-picker-search input::placeholder {
   color: var(--input-placeholder);
 }

@@ -163,7 +163,7 @@ export default function SettingsPage() {
     <div>
       <TopBar showConnection={false} onDeviceScanClick={() => setIsDeviceModalOpen(true)} />
 
-      <main className="main-content">
+      <main id="main-content" className="main-content">
         <div className="content-wrapper settings-wrapper">
           <section className="settings-header">
             <h1>Settings</h1>
@@ -173,7 +173,7 @@ export default function SettingsPage() {
           <div className="settings-container">
             <section className="settings-section">
               <div className="section-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                 </svg>
                 <h2>Athlete Profile</h2>
@@ -260,7 +260,7 @@ export default function SettingsPage() {
 
             <section className="settings-section">
               <div className="section-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/>
                 </svg>
                 <h2>Equipment</h2>
@@ -309,7 +309,7 @@ export default function SettingsPage() {
 
             <section className="settings-section">
               <div className="section-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M4 6h16v12H4zM8 9h8v2H8zm0 4h5v2H8z"/>
                 </svg>
                 <h2>Device Settings</h2>
@@ -335,7 +335,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="setting-row">
                   <div className="setting-info">
-                    <label>Reload Required</label>
+                    <p className="setting-label-text">Reload Required</p>
                     <p className="setting-description">Reload the page after toggling emulator mode.</p>
                   </div>
                 </div>
@@ -344,7 +344,7 @@ export default function SettingsPage() {
 
             <section className="settings-section">
               <div className="section-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
                 </svg>
                 <h2>Preferences</h2>
@@ -422,7 +422,7 @@ export default function SettingsPage() {
 
             <section className="settings-section">
               <div className="section-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
                 </svg>
                 <h2>AI Workout Generator</h2>
@@ -490,11 +490,11 @@ export default function SettingsPage() {
                       aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
                     >
                       {showApiKey ? (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                           <path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/>
                         </svg>
                       ) : (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                           <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
                         </svg>
                       )}
@@ -522,7 +522,7 @@ export default function SettingsPage() {
 
             <section className="settings-section">
               <div className="section-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M20 6h-2.18c.07-.44.18-.88.18-1.36C18 2.06 15.96 0 13.36 0c-1.46 0-2.75.67-3.6 1.7L9 3.5l-.76-1.8C7.39.67 6.11 0 4.64 0 2.06 0 0 2.06 0 4.64c0 .48.1.92.18 1.36H0v2h20V6zm-8.24 0L12 5.08l-.24.92h-1.86c-.09-.29-.14-.6-.14-.92V4.64C9.76 3.19 10.95 2 12.36 2c1.42 0 2.64 1.19 2.64 2.64 0 .32-.05.63-.14.92h-2.1zM4.64 2c1.42 0 2.64 1.19 2.64 2.64 0 .32-.05.63-.14.92H3.14A2.638 2.638 0 0 1 2 4.64C2 3.19 3.19 2 4.64 2zM2 20v-2l1-1v-5H2v-2h16v2h-1v5l1 1v2H2z"/>
                 </svg>
                 <h2>Data Management</h2>
@@ -531,7 +531,7 @@ export default function SettingsPage() {
               <div className="settings-card">
                 <div className="data-mgmt-row">
                   <div className="setting-info">
-                    <label>Export My Data</label>
+                    <p className="setting-label-text">Export My Data</p>
                     <p className="setting-description">
                       Download all your settings, ride history, training program, and custom workouts
                       as a JSON file. Use it to back up your data or move to another device.
@@ -542,7 +542,7 @@ export default function SettingsPage() {
                     className="btn-secondary data-mgmt-btn"
                     onClick={() => downloadExport()}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
                     </svg>
                     Export
@@ -551,14 +551,14 @@ export default function SettingsPage() {
 
                 <div className="data-mgmt-row">
                   <div className="setting-info">
-                    <label>Import Data</label>
+                    <p className="setting-label-text">Import Data</p>
                     <p className="setting-description">
                       Restore from a previously exported backup. Existing data will be overwritten.
                       Your API key will not be restored — re-enter it after import.
                     </p>
                   </div>
                   <label className="btn-secondary data-mgmt-btn data-mgmt-import-label">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
                     </svg>
                     Import
@@ -587,7 +587,7 @@ export default function SettingsPage() {
 
                 {importStatus && (
                   <div className={`import-result import-result--${importStatus}`}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       {importStatus === 'success'
                         ? <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                         : <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>}
@@ -598,7 +598,7 @@ export default function SettingsPage() {
 
                 <div className="data-mgmt-row data-mgmt-row--danger">
                   <div className="setting-info">
-                    <label>Clear All Data</label>
+                    <p className="setting-label-text">Clear All Data</p>
                     <p className="setting-description">
                       Permanently delete everything stored by Open Ride in this browser — settings,
                       ride history, training program, custom workouts, and your AI API key.
@@ -609,7 +609,7 @@ export default function SettingsPage() {
                     className="btn-danger data-mgmt-btn"
                     onClick={() => setShowClearConfirm(true)}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                     </svg>
                     Clear All Data
@@ -620,7 +620,7 @@ export default function SettingsPage() {
 
             <section className="settings-section">
               <div className="section-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M11 21h-1l1-7H7.5c-.88 0-.33-.75-.31-.78C8.48 10.94 10.42 7.54 13.01 3h1l-1 7h3.51c.4 0 .62.19.4.66C12.97 17.55 11 21 11 21z"/>
                 </svg>
                 <h2>Power Zones</h2>
@@ -674,8 +674,8 @@ export default function SettingsPage() {
               <Link to="/privacy" className="settings-legal-link">Privacy Policy</Link>
             </div>
 
-            <div id="save-toast" className={`save-toast ${showToast ? 'visible' : ''}`}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <div id="save-toast" role="status" aria-live="polite" className={`save-toast ${showToast ? 'visible' : ''}`}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
               </svg>
               Settings saved successfully
@@ -690,7 +690,7 @@ export default function SettingsPage() {
         <div className="clear-data-overlay" onClick={() => setShowClearConfirm(false)}>
           <div className="clear-data-modal" onClick={(e) => e.stopPropagation()}>
             <div className="clear-data-modal-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
               </svg>
             </div>

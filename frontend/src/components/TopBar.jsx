@@ -72,10 +72,10 @@ export default function TopBar({
 
   if (variant === 'activity') {
     return (
-      <nav className="top-nav top-nav--activity">
+      <nav className="top-nav top-nav--activity" aria-label="Activity navigation">
         <div className="nav-left">
           <Link className="nav-back" to="/">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M19 12H5m7-7-7 7 7 7"/>
             </svg>
             <span>{backLabel}</span>
@@ -85,31 +85,31 @@ export default function TopBar({
           <span className="nav-title">{title || ''}</span>
         </div>
         <div className="nav-right">
-          <button type="button" className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          <button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
             {theme === 'dark' ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37l-1.06 1.06c-.39.39-.39 1.03 0 1.41.39.39 1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41-.39-.38-1.03-.38-1.41 0zM7.05 18.36l-1.06 1.06c-.39.39-.39 1.03 0 1.41.39.39 1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0z"/>
               </svg>
             ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
               </svg>
             )}
           </button>
           {showConnection && (
-            <button type="button" className={`connection-badge ${status === 'connected' ? 'connected' : ''}`} onClick={onDeviceScanClick}>
+            <button type="button" className={`connection-badge ${status === 'connected' ? 'connected' : ''}`} onClick={onDeviceScanClick} aria-label={connectionText}>
               {isBluetooth ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
                 </svg>
               ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <circle cx="12" cy="12" r="2"/>
                   <path d="M12 6c-3.87 0-7 3.13-7 7h2c0-2.76 2.24-5 5-5s5 2.24 5 5h2c0-3.87-3.13-7-7-7z"/>
                   <path d="M12 2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8s8 3.59 8 8h2c0-5.52-4.48-10-10-10z"/>
                 </svg>
               )}
-              <span>{connectionText}</span>
+              <span aria-hidden="true">{connectionText}</span>
             </button>
           )}
         </div>
@@ -119,39 +119,39 @@ export default function TopBar({
 
   return (
     <>
-    <nav className="top-nav">
+    <nav className="top-nav" aria-label="Main navigation">
       <div className="top-nav-inner">
       <div className="nav-left">
-        <Link to="/" className="logo" aria-label="Open Ride" title="Open Ride">
+        <Link to="/" className="logo" aria-label="Open Ride home" title="Open Ride">
           <img className="logo-image" src={logoSvg} alt="" />
         </Link>
         <div className="nav-tabs">
-          <Link to="/" className={`nav-tab ${isActive('/') ? 'active' : ''}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <Link to="/" className={`nav-tab ${isActive('/') ? 'active' : ''}`} aria-current={isActive('/') ? 'page' : undefined}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M3 13h1v7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7h1c.55 0 .85-.66.5-1.08l-9-9c-.28-.28-.72-.28-1 0l-9 9c-.35.42-.05 1.08.5 1.08z"/>
             </svg>
             Home
           </Link>
-          <Link to="/training" className={`nav-tab ${isActive('/training') ? 'active' : ''}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <Link to="/training" className={`nav-tab ${isActive('/training') ? 'active' : ''}`} aria-current={isActive('/training') ? 'page' : undefined}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
             </svg>
             Training
           </Link>
-          <Link to="/ai-workout" className={`nav-tab ${isActive('/ai-workout') ? 'active' : ''}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <Link to="/ai-workout" className={`nav-tab ${isActive('/ai-workout') ? 'active' : ''}`} aria-current={isActive('/ai-workout') ? 'page' : undefined}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
             </svg>
             AI Workout
           </Link>
-          <Link to="/settings" className={`nav-tab ${isActive('/settings') ? 'active' : ''}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <Link to="/settings" className={`nav-tab ${isActive('/settings') ? 'active' : ''}`} aria-current={isActive('/settings') ? 'page' : undefined}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
             </svg>
             Settings
           </Link>
-          <Link to="/help" className={`nav-tab ${isActive('/help') ? 'active' : ''}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <Link to="/help" className={`nav-tab ${isActive('/help') ? 'active' : ''}`} aria-current={isActive('/help') ? 'page' : undefined}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
             </svg>
             Help
@@ -159,32 +159,32 @@ export default function TopBar({
         </div>
       </div>
       <div className="nav-right">
-        {showEmulator && <div className="emulator-badge-nav">🎮 EMULATOR</div>}
-        <button type="button" className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+        {showEmulator && <div className="emulator-badge-nav" aria-label="Emulator mode active">🎮 EMULATOR</div>}
+        <button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37l-1.06 1.06c-.39.39-.39 1.03 0 1.41.39.39 1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41-.39-.38-1.03-.38-1.41 0zM7.05 18.36l-1.06 1.06c-.39.39-.39 1.03 0 1.41.39.39 1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0z"/>
             </svg>
           ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
             </svg>
           )}
         </button>
         {showConnection && (
-          <button type="button" className={`connection-badge ${status === 'connected' ? 'connected' : ''}`} onClick={onDeviceScanClick}>
+          <button type="button" className={`connection-badge ${status === 'connected' ? 'connected' : ''}`} onClick={onDeviceScanClick} aria-label={connectionText}>
             {isBluetooth ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
               </svg>
             ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <circle cx="12" cy="12" r="2"/>
                 <path d="M12 6c-3.87 0-7 3.13-7 7h2c0-2.76 2.24-5 5-5s5 2.24 5 5h2c0-3.87-3.13-7-7-7z"/>
                 <path d="M12 2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8s8 3.59 8 8h2c0-5.52-4.48-10-10-10z"/>
               </svg>
             )}
-            <span>{connectionText}</span>
+            <span aria-hidden="true">{connectionText}</span>
           </button>
         )}
       </div>
@@ -192,33 +192,33 @@ export default function TopBar({
     </nav>
 
     {/* Mobile bottom tab bar */}
-    <nav className="mobile-bottom-nav">
-      <Link to="/" className={`mobile-nav-tab ${isActive('/') ? 'active' : ''}`}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+    <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+      <Link to="/" className={`mobile-nav-tab ${isActive('/') ? 'active' : ''}`} aria-current={isActive('/') ? 'page' : undefined}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M3 13h1v7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7h1c.55 0 .85-.66.5-1.08l-9-9c-.28-.28-.72-.28-1 0l-9 9c-.35.42-.05 1.08.5 1.08z"/>
         </svg>
         <span>Home</span>
       </Link>
-      <Link to="/training" className={`mobile-nav-tab ${isActive('/training') ? 'active' : ''}`}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+      <Link to="/training" className={`mobile-nav-tab ${isActive('/training') ? 'active' : ''}`} aria-current={isActive('/training') ? 'page' : undefined}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
         </svg>
         <span>Training</span>
       </Link>
-      <Link to="/ai-workout" className={`mobile-nav-tab ${isActive('/ai-workout') ? 'active' : ''}`}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+      <Link to="/ai-workout" className={`mobile-nav-tab ${isActive('/ai-workout') ? 'active' : ''}`} aria-current={isActive('/ai-workout') ? 'page' : undefined}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
         </svg>
         <span>AI Workout</span>
       </Link>
-      <Link to="/settings" className={`mobile-nav-tab ${isActive('/settings') ? 'active' : ''}`}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+      <Link to="/settings" className={`mobile-nav-tab ${isActive('/settings') ? 'active' : ''}`} aria-current={isActive('/settings') ? 'page' : undefined}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
         </svg>
         <span>Settings</span>
       </Link>
-      <Link to="/help" className={`mobile-nav-tab ${isActive('/help') ? 'active' : ''}`}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+      <Link to="/help" className={`mobile-nav-tab ${isActive('/help') ? 'active' : ''}`} aria-current={isActive('/help') ? 'page' : undefined}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
         </svg>
         <span>Help</span>

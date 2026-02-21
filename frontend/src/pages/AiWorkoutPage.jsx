@@ -247,7 +247,7 @@ export default function AiWorkoutPage() {
     <div>
       <TopBar onDeviceScanClick={() => setIsDeviceModalOpen(true)} />
 
-      <main className="main-content">
+      <main id="main-content" className="main-content">
         <div className="content-wrapper ai-workout-wrapper">
 
           <section className="ai-header">

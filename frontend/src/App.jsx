@@ -18,6 +18,7 @@ function AppShell() {
 
   return (
     <>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/training" element={<TrainingProgramPage />} />
