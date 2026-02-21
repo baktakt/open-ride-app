@@ -1989,3 +1989,11 @@ h1, h2, h3, h4 {
 [data-theme="light"] .connection-badge {
   color: var(--text-primary);
 }
+
+[data-theme="light"] .workout-type {
+  color: #007A5E;
+}
+
+[data-theme="light"] .workout-tag {
+  color: #3d5166;
+}
