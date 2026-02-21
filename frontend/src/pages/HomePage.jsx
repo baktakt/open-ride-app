@@ -313,7 +313,7 @@ export default function HomePage() {
             <section className="my-workouts-section">
               {myWorkouts.length === 0 ? (
                 <div className="my-workouts-empty">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.25, marginBottom: '1rem' }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ opacity: 0.25, marginBottom: '1rem' }}>
                     <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
                   </svg>
                   <p>No custom workouts yet</p>
@@ -326,7 +326,7 @@ export default function HomePage() {
                   <div className="my-workouts-header">
                     <p className="my-workouts-subtitle">Workouts generated with AI, saved to your device</p>
                     <Link to="/ai-workout" className="my-workouts-new-btn">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                       </svg>
                       New
@@ -372,7 +372,7 @@ export default function HomePage() {
                               )}
                               <div className="workout-meta">
                                 <div className="workout-meta-item">
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                     <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
                                   </svg>
                                   {formatDuration(workout.totalDuration)}
@@ -393,7 +393,7 @@ export default function HomePage() {
                               aria-label="Rename workout"
                               title="Rename workout"
                             >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                 <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                               </svg>
                             </button>
@@ -404,7 +404,7 @@ export default function HomePage() {
                               aria-label="Delete workout"
                               title="Delete workout"
                             >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                 <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                               </svg>
                             </button>
@@ -488,7 +488,7 @@ export default function HomePage() {
           <section className="workout-filters">
             {/* Search Bar */}
             <div className="filter-search">
-              <svg className="filter-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="filter-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
               </svg>
               <input
@@ -499,8 +499,8 @@ export default function HomePage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
-                <button className="filter-search-clear" onClick={() => setSearchQuery('')}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <button className="filter-search-clear" onClick={() => setSearchQuery('')} aria-label="Clear search">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                   </svg>
                 </button>
@@ -581,25 +581,25 @@ export default function HomePage() {
                   {selectedCategory && (
                     <span className="active-filter-chip" onClick={() => { setSelectedCategory(null); setSelectedSubcategory(null); }}>
                       {selectedCategory}
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                     </span>
                   )}
                   {selectedSubcategory && (
                     <span className="active-filter-chip" onClick={() => setSelectedSubcategory(null)}>
                       {selectedSubcategory}
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                     </span>
                   )}
                   {selectedDuration && (
                     <span className="active-filter-chip" onClick={() => setSelectedDuration(null)}>
                       {durationLabels[selectedDuration]}
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                     </span>
                   )}
                   {searchQuery.trim() && (
                     <span className="active-filter-chip" onClick={() => setSearchQuery('')}>
                       "{searchQuery}"
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                     </span>
                   )}
                 </div>
@@ -645,7 +645,7 @@ export default function HomePage() {
                       <h3 className="workout-title">{workout.name}</h3>
                       <div className="workout-meta">
                         <div className="workout-meta-item">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
                           </svg>
                           {formatDuration(workout.totalDuration)}
@@ -670,7 +670,7 @@ export default function HomePage() {
               })}
               {filteredWorkouts.length === 0 && (
                 <div className="empty-state">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.3, marginBottom: '1rem' }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ opacity: 0.3, marginBottom: '1rem' }}>
                     <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
                   </svg>
                   {isApiUnavailable ? (
