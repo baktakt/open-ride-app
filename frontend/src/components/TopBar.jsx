@@ -123,7 +123,7 @@ export default function TopBar({
       <div className="top-nav-inner">
       <div className="nav-left">
         <Link to="/" className="logo" aria-label="Open Ride home" title="Open Ride">
-          <img className="logo-image" src={logoSvg} alt="" />
+          <img className="logo-image" src={logoSvg} alt="" width="1024" height="300" />
         </Link>
         <div className="nav-tabs">
           <Link to="/" className={`nav-tab ${isActive('/') ? 'active' : ''}`} aria-current={isActive('/') ? 'page' : undefined}>

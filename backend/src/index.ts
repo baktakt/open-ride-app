@@ -48,6 +48,15 @@ app.use((_req, res, next) => {
   next();
 });
 
+// Security headers
+app.use((_req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 // Load workouts
 const workoutsDir = path.join(__dirname, '../workouts');
 let workouts: Workout[] = loadAllWorkouts(workoutsDir);
