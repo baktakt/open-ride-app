@@ -111,7 +111,7 @@ export default function DeviceModal({ isOpen, onClose }) {
     if (!modal) return;
 
     // Move focus into the modal on open
-    const focusableSelectors = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusableSelectors = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]';
     const focusables = modal.querySelectorAll(focusableSelectors);
     if (focusables.length) focusables[0].focus();
 

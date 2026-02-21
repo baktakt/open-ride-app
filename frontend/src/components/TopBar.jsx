@@ -159,7 +159,7 @@ export default function TopBar({
         </div>
       </div>
       <div className="nav-right">
-        {showEmulator && <div className="emulator-badge-nav" aria-label="Emulator mode active">🎮 EMULATOR</div>}
+        {showEmulator && <div className="emulator-badge-nav" role="status" aria-live="polite">🎮 EMULATOR</div>}
         <button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
