@@ -159,8 +159,8 @@ export default function DeviceModal({ isOpen, onClose }) {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="modal active" role="dialog" aria-modal="true" aria-labelledby="device-modal-title" ref={modalRef}>
-      <div className="modal-content device-scan">
+    <div className="modal active" role="dialog" aria-modal="true" aria-labelledby="device-modal-title">
+      <div className="modal-content device-scan" ref={modalRef}>
 
         {/* Header */}
         <div className="modal-header">
