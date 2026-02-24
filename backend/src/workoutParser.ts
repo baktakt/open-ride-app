@@ -170,8 +170,13 @@ function estimateTSS(elements: WorkoutElement[], durationSeconds: number): numbe
 // Supported workout element type names
 const WORKOUT_ELEMENT_TYPES = ['Warmup', 'Cooldown', 'SteadyState', 'Ramp', 'IntervalsT', 'FreeRide', 'MaxEffort'];
 
+// Escape a string for safe use inside a RegExp pattern
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Regex for detecting workout element opening tags in raw XML (used for order-preserving parsing)
-const ELEMENT_ORDER_REGEX = new RegExp(`<(${WORKOUT_ELEMENT_TYPES.join('|')})[\\s>]`, 'g');
+const ELEMENT_ORDER_REGEX = new RegExp(`<(${WORKOUT_ELEMENT_TYPES.map(escapeRegExp).join('|')})[\\s>]`, 'g');
 
 // Parse a single workout element
 function parseWorkoutElement(name: string, element: any): WorkoutElement | null {
