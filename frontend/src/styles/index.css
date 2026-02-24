@@ -1860,7 +1860,3 @@ h1, h2, h3, h4 {
   box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.25);
 }
 
-/* ── Connection modal ────────────────────────────────────────────────── */
-.modal-content {
-  background: linear-gradient(180deg, #0f1e2e 0%, #0a1b28 100%);
-}
