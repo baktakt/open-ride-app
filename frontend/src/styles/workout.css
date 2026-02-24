@@ -347,7 +347,7 @@ body.workout-page {
   top: 36px;
   height: 6px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .gauge-ok {
@@ -365,7 +365,7 @@ body.workout-page {
   position: absolute;
   width: 3px;
   height: 26px;
-  background: #1f2937;
+  background: #ffffff;
   top: 14px;
   left: var(--gauge-position);
   transform: translateX(-50%);
@@ -382,14 +382,6 @@ body.workout-page {
   font-size: 0.85rem;
   color: var(--muted-50);
 }
-.gauge-track {
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.gauge-needle {
-  background: #ffffff;
-}
-
 
 /* Workout Controls */
 .workout-controls {
