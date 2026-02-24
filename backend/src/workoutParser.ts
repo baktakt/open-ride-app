@@ -167,6 +167,12 @@ function estimateTSS(elements: WorkoutElement[], durationSeconds: number): numbe
   return Math.round(durationHours * Math.pow(normalizedPower, 2) * 100);
 }
 
+// Supported workout element type names
+const WORKOUT_ELEMENT_TYPES = ['Warmup', 'Cooldown', 'SteadyState', 'Ramp', 'IntervalsT', 'FreeRide', 'MaxEffort'];
+
+// Regex for detecting workout element opening tags in raw XML (used for order-preserving parsing)
+const ELEMENT_ORDER_REGEX = new RegExp(`<(${WORKOUT_ELEMENT_TYPES.join('|')})[\\s>]`, 'g');
+
 // Parse a single workout element
 function parseWorkoutElement(name: string, element: any): WorkoutElement | null {
   const textEvents = parseTextEvents(element);
@@ -287,21 +293,31 @@ export function parseWorkoutFile(filePath: string): Workout | null {
     
     // Parse workout elements
     const elements: WorkoutElement[] = [];
-    const elementTypes = ['Warmup', 'Cooldown', 'SteadyState', 'Ramp', 'IntervalsT', 'FreeRide', 'MaxEffort'];
-    
-    // We need to preserve the order of elements as they appear in the XML
-    // The parser may return elements in any order, so we iterate over all keys
+
+    // Collect parsed data grouped by type (fast-xml-parser merges same-type siblings into arrays)
+    const groupedData: Record<string, any[]> = {};
     for (const key of Object.keys(workout)) {
-      if (elementTypes.includes(key)) {
+      if (WORKOUT_ELEMENT_TYPES.includes(key)) {
         const elementData = workout[key];
-        const dataArray = Array.isArray(elementData) ? elementData : [elementData];
-        
-        dataArray.forEach((data: any) => {
-          const element = parseWorkoutElement(key, data);
+        groupedData[key] = Array.isArray(elementData) ? elementData : [elementData];
+      }
+    }
+
+    // Restore the original XML document order by scanning the raw XML for opening tags
+    const counters: Record<string, number> = {};
+    ELEMENT_ORDER_REGEX.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = ELEMENT_ORDER_REGEX.exec(xmlContent)) !== null) {
+      const typeName = match[1];
+      if (groupedData[typeName]) {
+        const idx = counters[typeName] ?? 0;
+        if (idx < groupedData[typeName].length) {
+          const element = parseWorkoutElement(typeName, groupedData[typeName][idx]);
           if (element) {
             elements.push(element);
           }
-        });
+          counters[typeName] = idx + 1;
+        }
       }
     }
     
