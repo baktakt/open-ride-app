@@ -382,11 +382,11 @@ body.workout-page {
   font-size: 0.85rem;
   color: var(--muted-50);
 }
-[data-theme="dark"] .gauge-track {
+.gauge-track {
   background: rgba(255, 255, 255, 0.16);
 }
 
-[data-theme="dark"] .gauge-needle {
+.gauge-needle {
   background: #ffffff;
 }
 

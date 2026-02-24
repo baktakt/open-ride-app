@@ -47,7 +47,6 @@ export default function PrivacyPolicyPage() {
             <li><strong>openride_settings</strong> &mdash; your profile data (FTP, maximum heart rate, body weight, unit preferences)</li>
             <li><strong>openride_workout_history</strong> &mdash; summaries of completed rides</li>
             <li><strong>openride_training_program</strong> &mdash; your weekly training schedule</li>
-            <li><strong>openride_theme</strong> &mdash; your UI colour theme preference</li>
             <li><strong>openride_use_emulator</strong> &mdash; whether the ANT+ emulator is enabled</li>
             <li><strong>openride_was_connected</strong> &mdash; whether a USB dongle was previously connected (used to trigger auto-reconnect)</li>
           </ul>

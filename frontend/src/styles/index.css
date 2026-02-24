@@ -83,45 +83,6 @@
   --toast-bg: rgba(20, 20, 40, 0.98);
 }
 
-[data-theme="light"] {
-  --background: #f2f5f9;
-  --surface: #ffffff;
-  --surface-light: #e4edf7;
-  --text-primary: #1a2332;
-  --text-secondary: #5a7085;
-  --border: rgba(0, 30, 60, 0.12);
-  --body-gradient: linear-gradient(180deg, #f2f5f9 0%, #e4ecf5 100%);
-  --overlay-xs: rgba(0, 0, 0, 0.02);
-  --overlay-sm: rgba(0, 0, 0, 0.03);
-  --overlay-md: rgba(0, 0, 0, 0.05);
-  --overlay-lg: rgba(0, 0, 0, 0.08);
-  --overlay-xl: rgba(0, 0, 0, 0.12);
-  --chip-bg: rgba(0, 0, 0, 0.04);
-  --chip-border: rgba(0, 30, 60, 0.12);
-  --chip-color: rgba(0, 30, 60, 0.65);
-  --input-bg: rgba(0, 0, 0, 0.04);
-  --input-border: rgba(0, 30, 60, 0.15);
-  --input-placeholder: rgba(0, 30, 60, 0.35);
-  --icon-muted: rgba(0, 30, 60, 0.4);
-  --tab-inactive: rgba(0, 30, 60, 0.45);
-  --tab-border: rgba(0, 30, 60, 0.1);
-  --muted-45: rgba(0, 30, 60, 0.45);
-  --muted-50: rgba(0, 30, 60, 0.5);
-  --activity-nav-bg: rgba(242, 245, 249, 0.95);
-  --conn-tabs-bg: rgba(0, 0, 0, 0.04);
-  --conn-tab-color: rgba(0, 30, 60, 0.55);
-  --debug-bg: rgba(0, 0, 0, 0.05);
-  --card-bg: #ffffff;
-  --card-border: rgba(0, 30, 60, 0.1);
-  --section-bg: rgba(0, 0, 0, 0.02);
-  --section-border: rgba(0, 30, 60, 0.08);
-  --inset-bg: rgba(0, 0, 0, 0.04);
-  --modal-bg: linear-gradient(180deg, #f2f5f9 0%, #e4ecf5 100%);
-  --page-gradient: linear-gradient(180deg, #f2f5f9 0%, #e4ecf5 100%);
-  --modal-overlay-bg: rgba(0, 0, 0, 0.5);
-  --toast-bg: rgba(255, 255, 255, 0.98);
-}
-
 body {
   font-family: var(--font-body);
   background: var(--body-gradient);
@@ -198,10 +159,6 @@ h1, h2, h3, h4 {
   width: 100%;
   display: block;
   object-fit: contain;
-}
-
-[data-theme="light"] .logo-image {
-  filter: brightness(0.25) contrast(1.1);
 }
 
 .nav-tabs {
@@ -1903,97 +1860,7 @@ h1, h2, h3, h4 {
   box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.25);
 }
 
-/* ── Theme toggle button ─────────────────────────────────────────────── */
-.theme-toggle {
-  background: var(--overlay-sm);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.theme-toggle:hover {
-  background: var(--overlay-lg);
-  color: var(--text-primary);
-  border-color: var(--primary-blue);
-}
-
-/* ── Light mode targeted overrides ──────────────────────────────────── */
-[data-theme="light"] .top-nav {
-  box-shadow: 0 1px 12px rgba(0, 30, 60, 0.08);
-}
-
-[data-theme="light"] .workout-card-rename,
-[data-theme="light"] .workout-card-delete {
-  background: rgba(0, 0, 0, 0.35);
-  border-color: rgba(0, 0, 0, 0.15);
-  color: rgba(0, 0, 0, 0.5);
-}
-
-[data-theme="light"] .device-status-btn {
-  background: var(--overlay-sm);
-  border-color: var(--border);
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .device-status-btn:hover {
-  background: var(--overlay-lg);
-}
-
-/* Connection modal light mode */
-[data-theme="light"] .modal-content {
-  background: linear-gradient(180deg, #ffffff 0%, #e4ecf5 100%);
-}
-
-[data-theme="dark"] .modal-content {
+/* ── Connection modal ────────────────────────────────────────────────── */
+.modal-content {
   background: linear-gradient(180deg, #0f1e2e 0%, #0a1b28 100%);
-}
-
-[data-theme="light"] .modal-header h2 {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .device-item {
-  background: var(--surface-light);
-  color: var(--text-primary);
-  border-color: var(--border);
-}
-
-[data-theme="light"] .device-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 30, 60, 0.1);
-}
-
-[data-theme="light"] .device-item.selected {
-  background: #e8f5e9;
-}
-
-[data-theme="light"] .device-name {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .device-meta {
-  color: var(--text-secondary);
-}
-
-[data-theme="light"] .section-header h3 {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .connection-badge {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .workout-type {
-  color: #007A5E;
-}
-
-[data-theme="light"] .workout-tag {
-  color: #3d5166;
 }
