@@ -6,12 +6,12 @@
   "dependencies": {
     "ant-plus-next": "^0.4.0",
     "events": "^3.3.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "react-router-dom": "^6.20.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.0",
+    "@vitejs/plugin-react": "^5.1.4",
     "vite": "^7.3.1"
   },
   "scripts": {
