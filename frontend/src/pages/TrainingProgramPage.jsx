@@ -250,6 +250,27 @@ export default function TrainingProgramPage() {
             )}
           </section>
 
+          {/* Route Ride Card */}
+          <section className="tp-route-card">
+            <div className="tp-route-card-content">
+              <div className="tp-route-card-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
+                </svg>
+              </div>
+              <div className="tp-route-card-text">
+                <h2>Route Ride</h2>
+                <p>Upload a GPX file and ride your favorite outdoor route indoors. Trainer resistance adjusts automatically to match the elevation.</p>
+              </div>
+            </div>
+            <Link to="/route" className="tp-route-card-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              Open Route Ride
+            </Link>
+          </section>
+
           {/* Today's Workout Hero */}
           {todayWorkouts.length > 0 && (
             <section className="tp-today-hero">
