@@ -462,7 +462,9 @@ export default function WorkoutPage() {
       : 0;
     const distance = telemetryRef.current.distance || 0;
     const totalKJ = (avgPower * duration) / 1000;
-    const calories = Math.round(totalKJ / 4.184);
+    // Cycling standard: 1 kJ mechanical ≈ 1 kcal (body ~24% efficient: 1/0.24/4.184 ≈ 1.0)
+    // Same convention used by Garmin, Wahoo, TrainingPeaks
+    const calories = Math.round(totalKJ);
     const intensityFactor = ftp > 0 ? (avgPower / ftp).toFixed(2) : '--';
 
     const stats = {
