@@ -1,3 +1,5 @@
+
+
 # Open Ride
 
 An open-source indoor cycling app that connects to smart trainers directly from the browser — via **ANT+ USB** or **Bluetooth LE**. Run structured workouts or free-ride sessions with live power, cadence, speed, and heart rate data.
@@ -278,7 +280,7 @@ A workout file looks like this:
 | `Cooldown` | Ramp from `PowerHigh` down to `PowerLow` |
 | `SteadyState` | Hold a single `Power` value |
 | `Ramp` | Ramp between `PowerLow` and `PowerHigh` |
-| `IntervalsT` | Repeating on/off intervals (`Repeat`, `OnDuration`, `OffDuration`, `OnPower`, `OffPower`) |
+| `IntervalsT` | Repeating on/off intervals (`Repeat`, `OnDuration`, `OffDuration`, `OnPower`, `OffPower`, plus optional `Cadence` and `CadenceResting`) |
 | `FreeRide` | No target power — ride at your own pace |
 | `MaxEffort` | All-out sprint — no power target, duration only |
 
