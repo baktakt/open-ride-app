@@ -4,6 +4,8 @@
  * Useful for development and testing
  */
 
+import { speedFromPower } from './cyclingPhysics.js';
+
 /**
  * Simple EventEmitter for browser
  */
@@ -50,8 +52,10 @@ class EmulatedTrainer {
     this.name = name;
 
     // Simulated state
+    this.mode = 'idle'; // 'idle' | 'erg' | 'resistance' | 'grade'
     this.targetPower = 0;
     this.resistance = 0;
+    this.grade = 0;
     this.currentPower = 0;
     this.cadence = 0;
     this.speed = 0;
@@ -69,13 +73,15 @@ class EmulatedTrainer {
    * Update simulated telemetry (called every 250ms)
    */
   update() {
-    // Smooth power towards target
-    if (this.targetPower > 0) {
-      const powerDiff = this.targetPower - this.currentPower;
-      this.currentPower += powerDiff * 0.1;
-    } else if (this.resistance > 0) {
-      // Resistance mode - simulate some power output
+    // Smooth power towards what the emulated rider produces in each mode
+    if (this.mode === 'erg' && this.targetPower > 0) {
+      this.currentPower += (this.targetPower - this.currentPower) * 0.1;
+    } else if (this.mode === 'resistance' && this.resistance > 0) {
       this.currentPower = 100 + (this.resistance / 100) * 200;
+    } else if (this.mode === 'grade') {
+      // Rider pushes harder uphill and eases off downhill
+      const riderPower = Math.max(60, Math.min(320, 170 + this.grade * 15));
+      this.currentPower += (riderPower - this.currentPower) * 0.1;
     } else {
       // Coast down
       this.currentPower *= 0.95;
@@ -92,9 +98,13 @@ class EmulatedTrainer {
       this.cadence *= 0.9;
     }
 
-    // Calculate speed from power (simplified physics)
-    // Speed (m/s) ≈ (Power / 200)^(1/3) * 10
-    if (this.currentPower > 0) {
+    // Calculate speed from power: on a grade use road physics (slower
+    // uphill), otherwise a flat-road approximation
+    if (this.mode === 'grade') {
+      const target = speedFromPower(this.currentPower, this.grade);
+      this.speed += (target - this.speed) * 0.1;
+    } else if (this.currentPower > 0) {
+      // Speed (m/s) ≈ (Power / 200)^(1/3) * 10
       this.speed = Math.pow(this.currentPower / 200, 1/3) * 10;
     } else {
       this.speed *= 0.9;
@@ -150,11 +160,18 @@ class EmulatedTrainer {
   }
 
   setTargetPower(power) {
+    this.mode = 'erg';
     this.targetPower = power;
   }
 
   setResistance(percent) {
+    this.mode = 'resistance';
     this.resistance = percent;
+  }
+
+  setGrade(gradePercent) {
+    this.mode = 'grade';
+    this.grade = gradePercent;
   }
 }
 
@@ -332,12 +349,19 @@ export class AntManagerEmulator extends EventEmitter {
   }
 
   /**
-   * Grade simulation stub for the emulator.
+   * Grade simulation: the emulated rider's speed follows road physics.
    * @param {number} gradePercent
    */
   async setGrade(gradePercent) {
-    const approx = Math.max(0, Math.min(100, 40 + gradePercent * 5));
-    return this.setResistance(approx);
+    if (!this.connectedTrainer) {
+      this.log('error', 'Cannot set grade: not connected');
+      return false;
+    }
+
+    const grade = Math.max(-20, Math.min(20, gradePercent));
+    this.log('info', `Setting emulated grade to ${grade.toFixed(1)}%`);
+    this.connectedTrainer.setGrade(grade);
+    return true;
   }
 
   /**

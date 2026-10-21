@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getAntManager } from '../services/antManager';
 import { BluetoothManagerWebBluetooth } from '../services/bluetoothManagerWebBluetooth';
+import { HeartRateMonitorWebBluetooth } from '../services/heartRateMonitorWebBluetooth';
 import { EMPTY_TELEMETRY, mergeTelemetry } from '../services/telemetry';
 
 const AntContext = createContext(null);
@@ -17,6 +18,10 @@ export function AntProvider({ children }) {
   // Both managers are created once and kept alive for the session.
   const [antManager]       = useState(() => getAntManager());
   const [bluetoothManager] = useState(() => new BluetoothManagerWebBluetooth());
+  // Optional Bluetooth heart rate strap, usable with either trainer connection
+  const [heartRateMonitor] = useState(() => new HeartRateMonitorWebBluetooth());
+  const [heartRateMonitorStatus, setHeartRateMonitorStatus] = useState(() => heartRateMonitor.getStatus());
+  const hrmConnectedRef = useRef(false);
 
   // Connection type: 'ant+' | 'bluetooth' — persisted in localStorage
   const [connectionType, _setConnectionType] = useState(
@@ -90,7 +95,9 @@ export function AntProvider({ children }) {
 
     const handleTelemetry = (data) => {
       const now = Date.now();
-      setTelemetry(prev => mergeTelemetry(prev, data, telemetryLastSeenRef.current, now));
+      // A dedicated heart rate strap takes precedence over trainer-relayed HR
+      const merged = hrmConnectedRef.current ? { ...data, heartRate: undefined } : data;
+      setTelemetry(prev => mergeTelemetry(prev, merged, telemetryLastSeenRef.current, now));
     };
 
     manager.on('status',           handleStatus);
@@ -103,6 +110,27 @@ export function AntProvider({ children }) {
       manager.off('telemetry',         handleTelemetry);
     };
   }, [connectionType, antManager, bluetoothManager]);
+
+  // ── Heart rate strap ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleStatus = (statusObj) => {
+      hrmConnectedRef.current = statusObj.connection === 'connected';
+      setHeartRateMonitorStatus(statusObj);
+    };
+    const handleTelemetry = (data) => {
+      const now = Date.now();
+      setTelemetry(prev => mergeTelemetry(prev, data, telemetryLastSeenRef.current, now));
+    };
+    heartRateMonitor.on('status', handleStatus);
+    heartRateMonitor.on('telemetry', handleTelemetry);
+    return () => {
+      heartRateMonitor.off('status', handleStatus);
+      heartRateMonitor.off('telemetry', handleTelemetry);
+    };
+  }, [heartRateMonitor]);
+
+  const connectHeartRateMonitor = useCallback(() => heartRateMonitor.connect(), [heartRateMonitor]);
+  const disconnectHeartRateMonitor = useCallback(() => heartRateMonitor.disconnect(), [heartRateMonitor]);
 
   // ── Auto-initialise ANT+ if it was previously connected ───────────────────
   useEffect(() => {
@@ -215,6 +243,8 @@ export function AntProvider({ children }) {
     connectedDevice,
     telemetry,
     connectionType,
+    heartRateMonitorStatus,
+    heartRateMonitorSupported: heartRateMonitor.isSupported,
 
     // Actions
     setConnectionType,
@@ -226,6 +256,8 @@ export function AntProvider({ children }) {
     setTargetPower,
     setResistance,
     setGrade,
+    connectHeartRateMonitor,
+    disconnectHeartRateMonitor,
   };
 
   return <AntContext.Provider value={value}>{children}</AntContext.Provider>;

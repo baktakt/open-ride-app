@@ -7,6 +7,9 @@
 
 import { WebUsbStick, FitnessEquipmentSensor, FitnessEquipmentScanner } from 'ant-plus-next';
 
+// Typical road tyre on smooth tarmac (FE-C default is 0.004)
+const ROLLING_RESISTANCE_COEFF = 0.004;
+
 /**
  * Simple EventEmitter for browser
  */
@@ -212,8 +215,6 @@ export class AntManagerWebUSB extends EventEmitter {
 
       // Handle discovered devices
       this.scanner.on('fitnessData', (state) => {
-        this.log('info', `Received fitnessData event`);
-        console.log('Scanner state:', state);
         this.handleScanData(state);
       });
 
@@ -271,14 +272,9 @@ export class AntManagerWebUSB extends EventEmitter {
    * Handle scan data - update discovered devices
    */
   handleScanData(state) {
-    console.log('Full scan state:', JSON.stringify(state, null, 2));
-    this.log('info', `Scan data: DeviceId=${state.DeviceId}, Type=${state.EquipmentType}`);
-
+    // Called for every broadcast (~4 Hz per trainer) — keep it cheap
     const deviceId = state.DeviceId;
-    if (!deviceId) {
-      this.log('warn', 'Received scan data without DeviceId - still initializing?');
-      return;
-    }
+    if (!deviceId) return;
 
     const device = {
       deviceId,
@@ -291,7 +287,7 @@ export class AntManagerWebUSB extends EventEmitter {
     this.discoveredDevices.set(deviceId, device);
 
     if (isNew) {
-      this.log('info', `Discovered FE-C device: ${deviceId}`);
+      this.log('info', `Discovered FE-C device: ${deviceId} (${state.EquipmentType || 'unknown type'})`);
       this.emit('device_discovered', device);
     }
 
@@ -548,14 +544,26 @@ export class AntManagerWebUSB extends EventEmitter {
   }
 
   /**
-   * Grade simulation — ANT+ FE-C track resistance (page 51) is not yet implemented
-   * in the underlying library, so fall back to basic resistance as an approximation.
-   * @param {number} gradePercent
+   * Grade simulation via FE-C Track Resistance (data page 51). The trainer
+   * computes resistance from grade, rolling resistance and the rider weight
+   * from its user configuration.
+   * @param {number} gradePercent — e.g. 5 = 5 % uphill, -3 = 3 % downhill
    */
   async setGrade(gradePercent) {
-    // Approximate: 0% grade → 40% resistance, each 1% grade adds ~5%
-    const approx = Math.max(0, Math.min(100, 40 + gradePercent * 5));
-    return this.setResistance(approx);
+    if (!this.sensor || this._connectionStatus !== 'connected') {
+      this.log('error', 'Cannot set grade: not connected');
+      return false;
+    }
+
+    const grade = Math.max(-20, Math.min(20, gradePercent));
+    try {
+      await this.sensor.setTrackResistance(grade, ROLLING_RESISTANCE_COEFF);
+      this.log('info', `Grade set to ${grade.toFixed(1)}%`);
+      return true;
+    } catch (err) {
+      this.log('error', `Failed to set grade: ${err.message}`);
+      return false;
+    }
   }
 
   /**

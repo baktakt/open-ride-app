@@ -113,6 +113,8 @@ export default function WorkoutPage() {
   if (!recorderRef.current) recorderRef.current = createRideRecorder();
   // Seconds jumped over with "Skip" — workout position = ride time + skipped time
   const skipOffsetRef = useRef(0);
+  // Distance ridden since start, from positive deltas of the trainer's counter
+  const rideDistanceRef = useRef({ total: 0, last: null });
   const targetPowerRef = useRef(0);
 
   const segmentStarts = useMemo(() => {
@@ -399,6 +401,10 @@ export default function WorkoutPage() {
       const recorder = recorderRef.current;
       const added = recorder.tick(telemetryRef.current, { targetPower: targetPowerRef.current });
       if (added > 0) {
+        const distance = telemetryRef.current.distance;
+        const ride = rideDistanceRef.current;
+        if (ride.last !== null && distance >= ride.last) ride.total += distance - ride.last;
+        ride.last = distance;
         setElapsedSeconds(recorder.elapsedSeconds + skipOffsetRef.current);
       }
     }, 250);
@@ -406,6 +412,7 @@ export default function WorkoutPage() {
 
   const startWorkout = () => {
     skipOffsetRef.current = 0;
+    rideDistanceRef.current = { total: 0, last: null };
     recorderRef.current.start();
     setElapsedSeconds(0);
     setIsRunning(true);
@@ -741,7 +748,7 @@ export default function WorkoutPage() {
           <div className="metric-card distance">
             <div className="metric-label">DISTANCE</div>
             <div className="metric-value">
-              <span>{(telemetry.distance / 1000).toFixed(2)}</span>
+              <span>{(rideDistanceRef.current.total / 1000).toFixed(2)}</span>
               <span className="metric-unit">km</span>
             </div>
           </div>
