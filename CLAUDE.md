@@ -62,7 +62,14 @@ Open Ride is a privacy-first indoor cycling app. The browser talks to an ANT+ US
 
 ## Running and verifying changes
 
-There is no automated test suite. Verify changes manually:
+Pure logic (metrics, recorder, telemetry merge, workout parsing) has unit tests using Node's built-in test runner — no extra dependencies:
+
+```bash
+cd frontend && npm test   # frontend/test/*.test.js
+cd backend && npm test    # backend/test/*.test.ts (via tsx)
+```
+
+UI and hardware behaviour must still be verified manually:
 
 ```bash
 # Start backend (terminal 1)

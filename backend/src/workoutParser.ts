@@ -117,54 +117,72 @@ function calculateTotalDuration(elements: WorkoutElement[]): number {
   }, 0);
 }
 
-// Estimate TSS (Training Stress Score)
-function estimateTSS(elements: WorkoutElement[], durationSeconds: number): number {
-  let intensityFactorSum = 0;
-  let totalTime = 0;
-  
-  elements.forEach(element => {
-    let avgPower: number;
-    let elementDuration: number;
-    
+// Assumed intensity for segments without an explicit power target
+const FREE_RIDE_FTP_FRACTION = 0.65;
+const MAX_EFFORT_FTP_FRACTION = 1.2;
+const NP_WINDOW_SECONDS = 30;
+
+// Per-second planned intensity (fractions of FTP)
+export function ftpProfile(elements: WorkoutElement[]): number[] {
+  const profile: number[] = [];
+  const pushLinear = (duration: number, from: number, to: number): void => {
+    for (let t = 0; t < duration; t++) {
+      profile.push(from + (to - from) * (duration > 1 ? t / (duration - 1) : 0));
+    }
+  };
+  for (const element of elements) {
     switch (element.type) {
+      case 'IntervalsT':
+        for (let r = 0; r < element.repeat; r++) {
+          pushLinear(element.onDuration, element.onPower, element.onPower);
+          pushLinear(element.offDuration, element.offPower, element.offPower);
+        }
+        break;
+      case 'SteadyState':
+        pushLinear(element.duration, element.power, element.power);
+        break;
       case 'Warmup':
       case 'Cooldown':
       case 'Ramp':
-        avgPower = ((element as WarmupElement).powerLow + (element as WarmupElement).powerHigh) / 2;
-        elementDuration = element.duration;
-        break;
-      case 'SteadyState':
-        avgPower = (element as SteadyStateElement).power;
-        elementDuration = element.duration;
-        break;
-      case 'IntervalsT':
-        const intervals = element as IntervalsElement;
-        const onTime = intervals.onDuration * intervals.repeat;
-        const offTime = intervals.offDuration * intervals.repeat;
-        avgPower = (intervals.onPower * onTime + intervals.offPower * offTime) / (onTime + offTime);
-        elementDuration = onTime + offTime;
-        break;
-      case 'FreeRide':
-        avgPower = 0.65; // Assume moderate effort
-        elementDuration = element.duration;
+        pushLinear(element.duration, element.powerLow, element.powerHigh);
         break;
       case 'MaxEffort':
-        avgPower = 1.2; // Assume 120% FTP
-        elementDuration = element.duration;
+        pushLinear(element.duration, MAX_EFFORT_FTP_FRACTION, MAX_EFFORT_FTP_FRACTION);
+        break;
+      case 'FreeRide':
+        pushLinear(element.duration, FREE_RIDE_FTP_FRACTION, FREE_RIDE_FTP_FRACTION);
         break;
     }
-    
-    intensityFactorSum += avgPower * elementDuration;
-    totalTime += elementDuration;
-  });
-  
-  const avgIntensityFactor = intensityFactorSum / totalTime;
-  const normalizedPower = avgIntensityFactor;
-  const durationHours = durationSeconds / 3600;
-  
-  // TSS = (duration in seconds × NP × IF) / (FTP × 3600) × 100
-  // Simplified: TSS ≈ duration_hours × IF^2 × 100
-  return Math.round(durationHours * Math.pow(normalizedPower, 2) * 100);
+  }
+  return profile;
+}
+
+// Normalized Power: 30 s rolling average, 4th-power mean, 4th root
+export function normalizedPower(powers: number[]): number {
+  if (powers.length === 0) return 0;
+  if (powers.length < NP_WINDOW_SECONDS) {
+    return powers.reduce((sum, p) => sum + p, 0) / powers.length;
+  }
+  let windowSum = 0;
+  let fourthPowerSum = 0;
+  let count = 0;
+  for (let i = 0; i < powers.length; i++) {
+    windowSum += powers[i];
+    if (i >= NP_WINDOW_SECONDS) windowSum -= powers[i - NP_WINDOW_SECONDS];
+    if (i >= NP_WINDOW_SECONDS - 1) {
+      fourthPowerSum += (windowSum / NP_WINDOW_SECONDS) ** 4;
+      count += 1;
+    }
+  }
+  return Math.pow(fourthPowerSum / count, 0.25);
+}
+
+// Estimate TSS (Training Stress Score) from the planned profile.
+// With power expressed as FTP fractions, IF = NP and TSS = hours × IF² × 100.
+export function estimateTSS(elements: WorkoutElement[]): number {
+  const profile = ftpProfile(elements);
+  const intensityFactor = normalizedPower(profile);
+  return Math.round((profile.length / 3600) * intensityFactor * intensityFactor * 100);
 }
 
 // Supported workout element type names
@@ -448,7 +466,7 @@ export function getWorkoutSummaries(workouts: Workout[]): WorkoutSummary[] {
     subcategory: workout.subcategory,
     tags: workout.tags,
     totalDuration: workout.totalDuration,
-    estimatedTSS: estimateTSS(workout.elements, workout.totalDuration),
+    estimatedTSS: estimateTSS(workout.elements),
     chartProfile: generateChartProfile(workout.elements),
   }));
 }
