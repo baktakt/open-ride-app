@@ -144,3 +144,25 @@ export function elevationGain(profile, upToKm = Infinity) {
   }
   return gain;
 }
+
+/**
+ * Interpolated { lat, lng } at a distance along the route (km).
+ * @param {Array<{ lat: number, lng: number, distanceFromStart: number }>} points
+ */
+export function positionAt(points, distanceKm) {
+  if (!points || points.length === 0) return null;
+  if (distanceKm <= points[0].distanceFromStart) return { lat: points[0].lat, lng: points[0].lng };
+  let lo = 0;
+  let hi = points.length - 1;
+  if (distanceKm >= points[hi].distanceFromStart) return { lat: points[hi].lat, lng: points[hi].lng };
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (points[mid].distanceFromStart <= distanceKm) lo = mid;
+    else hi = mid;
+  }
+  const a = points[lo];
+  const b = points[hi];
+  const span = b.distanceFromStart - a.distanceFromStart;
+  const t = span > 0 ? (distanceKm - a.distanceFromStart) / span : 0;
+  return { lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t };
+}

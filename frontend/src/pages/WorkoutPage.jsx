@@ -6,6 +6,8 @@ import { useAnt } from '../contexts/AntContext';
 import { loadCachedWorkout, loadCustomWorkouts, saveCachedWorkout } from '../services/dataManager';
 import { createRideRecorder } from '../services/rideRecorder';
 import { computeRideMetrics } from '../services/rideMetrics';
+import { saveRideFile } from '../services/rideFiles';
+import { downloadRide } from '../services/rideExport';
 import {
   buildExecutionPlan,
   targetPowerAt,
@@ -108,6 +110,8 @@ export default function WorkoutPage() {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
   const [completeStats, setCompleteStats] = useState(null);
+  // Full recording of the finished ride, for FIT / TCX export
+  const [completedRide, setCompletedRide] = useState(null);
   const [hasEnded, setHasEnded] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -229,11 +233,11 @@ export default function WorkoutPage() {
     setShowSettings(false);
   };
 
-  const saveWorkoutHistory = (stats) => {
+  const saveWorkoutHistory = (stats, rideId) => {
     try {
       const history = JSON.parse(localStorage.getItem('openride_workout_history') || '[]');
       history.unshift({
-        id: Date.now(),
+        id: rideId,
         date: new Date().toISOString(),
         workoutId: id,
         workoutName: workout?.name || 'Workout',
@@ -424,8 +428,24 @@ export default function WorkoutPage() {
     setIsRunning(false);
     setHasEnded(true);
     setTargetPower(0);
+    // The history entry and the stored recording share an id so the ride can
+    // be exported from the home page later
+    const rideId = Date.now();
+    const ride = {
+      id: rideId,
+      type: 'workout',
+      name: workout?.name || 'Workout',
+      startTime: new Date(recorder.startedAt).toISOString(),
+      ftp,
+      samples: recorder.samples,
+      summary: stats,
+    };
     setCompleteStats(stats);
-    saveWorkoutHistory(stats);
+    setCompletedRide(ride.samples.length > 0 ? ride : null);
+    saveWorkoutHistory(stats, rideId);
+    if (ride.samples.length > 0) {
+      saveRideFile(ride).catch(err => console.error('Failed to store ride recording:', err));
+    }
     setShowComplete(true);
   };
 
@@ -978,6 +998,14 @@ export default function WorkoutPage() {
                 <span className="secondary-value">{completeStats.ftp}W</span>
               </div>
             </div>
+
+            {completedRide && (
+              <div className="complete-export">
+                <span className="complete-export-label">Export ride</span>
+                <button className="complete-btn secondary" onClick={() => downloadRide(completedRide, 'fit')}>.FIT</button>
+                <button className="complete-btn secondary" onClick={() => downloadRide(completedRide, 'tcx')}>.TCX</button>
+              </div>
+            )}
 
             <div className="complete-actions">
               <button className="complete-btn secondary" onClick={() => navigate('/')}>Back to Home</button>

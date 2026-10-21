@@ -12,13 +12,17 @@
  *   recorder.start();
  *   setInterval(() => recorder.tick(telemetryRef.current), 250);
  *   recorder.elapsedSeconds   // whole seconds of active (unpaused) riding
- *   recorder.samples          // [{ t, power, cadence, heartRate, speed, distance, ... }]
+ *   recorder.samples          // [{ t, timestamp, power, cadence, heartRate, speed, distance, ... }]
+ *
+ * `t` is seconds of active riding; `timestamp` is the wall-clock time (ms)
+ * at which that second completed, so pauses appear as gaps between samples.
  */
 
 const MAX_BACKFILL_SECONDS = 6 * 3600;
 
-export function createRideRecorder({ now = () => performance.now() } = {}) {
+export function createRideRecorder({ now = () => performance.now(), wallNow = () => Date.now() } = {}) {
   let samples = [];
+  let startedAt = null;
   let activeMs = 0;
   let lastTs = null;
   let running = false;
@@ -35,11 +39,14 @@ export function createRideRecorder({ now = () => performance.now() } = {}) {
     get elapsedSeconds() { return samples.length; },
     get isRunning() { return running; },
     get isPaused() { return paused; },
+    /** Wall-clock time (ms) the ride started */
+    get startedAt() { return startedAt; },
 
     start() {
       samples = [];
       activeMs = 0;
       lastTs = now();
+      startedAt = wallNow();
       running = true;
       paused = false;
     },
@@ -71,10 +78,14 @@ export function createRideRecorder({ now = () => performance.now() } = {}) {
       if (!running || paused) return 0;
       accumulate();
       const due = Math.min(Math.floor(activeMs / 1000), MAX_BACKFILL_SECONDS);
+      const wall = wallNow();
       let added = 0;
       while (samples.length < due) {
+        const t = samples.length + 1;
         samples.push({
-          t: samples.length + 1,
+          t,
+          // when this second of riding completed (back-filled seconds included)
+          timestamp: Math.round(wall - (activeMs - t * 1000)),
           power: telemetry?.power || 0,
           cadence: telemetry?.cadence || 0,
           heartRate: telemetry?.heartRate || 0,

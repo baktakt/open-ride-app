@@ -120,3 +120,12 @@ cd frontend && npm run build
 | `openride_training_program` | Weekly training schedule |
 | `openride_use_emulator` | `"true"` or `"false"` -- enables emulator mode |
 | `openride_was_connected` | `"true"` if previously connected to USB dongle (triggers auto-reconnect) |
+
+## IndexedDB
+
+Large data lives in the `openride` IndexedDB database. Always open it through `frontend/src/services/db.js` (single version + upgrade handler for all stores).
+
+| Store | Content | Module |
+|-------|---------|--------|
+| `routes` | Saved GPX routes | `services/routeLibrary.js` |
+| `rides` | Per-second ride recordings (id = history entry id), exported as FIT/TCX by `services/rideExport.js` | `services/rideFiles.js` |

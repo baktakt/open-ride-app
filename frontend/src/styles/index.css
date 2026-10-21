@@ -1634,6 +1634,28 @@ h1, h2, h3, h4 {
   min-width: 140px;
 }
 
+.history-export {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.history-export-btn {
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #00d4ff;
+  background: transparent;
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.history-export-btn:hover {
+  background: rgba(0, 212, 255, 0.12);
+}
+
 .history-name {
   font-size: 1rem;
   font-weight: 600;

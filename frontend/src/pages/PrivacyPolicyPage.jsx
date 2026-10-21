@@ -51,6 +51,13 @@ export default function PrivacyPolicyPage() {
             <li><strong>openride_was_connected</strong> &mdash; whether a USB dongle was previously connected (used to trigger auto-reconnect)</li>
           </ul>
           <p>
+            Larger data is kept in the browser&rsquo;s IndexedDB database <strong>openride</strong>:
+          </p>
+          <ul>
+            <li><strong>routes</strong> &mdash; GPX routes you save to your route library</li>
+            <li><strong>rides</strong> &mdash; second-by-second recordings of your completed rides (power, cadence, heart rate, speed, distance, and position along the route for route rides), kept so you can export a ride as a FIT or TCX file. The most recent 100 rides per profile are kept, and clearing a ride history list also deletes its recordings. Export files are only created when you click an export button, and are saved to your device &mdash; nothing is uploaded</li>
+          </ul>
+          <p>
             You can view, export, or delete this data at any time through your browser&rsquo;s
             developer tools or by clearing site data for this origin.
           </p>

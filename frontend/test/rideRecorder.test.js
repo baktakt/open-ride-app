@@ -51,3 +51,30 @@ test('extra fields are stored on samples', () => {
   rec.tick({ power: 100 }, { targetPower: 180 });
   assert.equal(rec.samples[0].targetPower, 180);
 });
+
+test('samples carry wall-clock timestamps with pauses as gaps', () => {
+  let mono = 0;
+  let wall = 1_700_000_000_000;
+  const rec = createRideRecorder({ now: () => mono, wallNow: () => wall });
+  const advance = ms => { mono += ms; wall += ms; };
+  rec.start();
+  assert.equal(rec.startedAt, 1_700_000_000_000);
+  advance(2000);
+  rec.tick({});
+  rec.pause();
+  wall += 60_000; mono += 60_000; // paused for a minute
+  rec.resume();
+  advance(1000);
+  rec.tick({});
+  assert.deepEqual(rec.samples.map(s => s.timestamp - rec.startedAt), [1000, 2000, 63000]);
+});
+
+test('back-filled samples get evenly spaced timestamps', () => {
+  let mono = 0;
+  let wall = 0;
+  const rec = createRideRecorder({ now: () => mono, wallNow: () => wall });
+  rec.start();
+  mono += 3500; wall += 3500;
+  rec.tick({});
+  assert.deepEqual(rec.samples.map(s => s.timestamp), [1000, 2000, 3000]);
+});
