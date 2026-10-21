@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
 import { useAnt } from '../contexts/AntContext';
 import { loadCachedWorkout, loadCustomWorkouts, saveCachedWorkout } from '../services/dataManager';
+import { createRideRecorder } from '../services/rideRecorder';
+import { computeRideMetrics } from '../services/rideMetrics';
 import '../styles/workout.css';
 import '../styles/notifications.css';
 
@@ -76,9 +78,8 @@ export default function WorkoutPage() {
   const [executionPlan, setExecutionPlan] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
+  // Position in the workout timeline (active riding time + any skipped time)
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [segmentElapsed, setSegmentElapsed] = useState(0);
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
   const [ftp, setFtp] = useState(200);
   const [intensityBias, setIntensityBias] = useState(100);
@@ -108,13 +109,35 @@ export default function WorkoutPage() {
   const telemetryRef = useRef(telemetry);
   const intensityBiasRef = useRef(100);
   const workoutElementsRef = useRef(null);
-  const workoutStatsRef = useRef({
-    totalPower: 0,
-    powerReadings: 0,
-    maxPower: 0,
-    totalCadence: 0,
-    cadenceReadings: 0
-  });
+  const recorderRef = useRef(null);
+  if (!recorderRef.current) recorderRef.current = createRideRecorder();
+  // Seconds jumped over with "Skip" — workout position = ride time + skipped time
+  const skipOffsetRef = useRef(0);
+  const targetPowerRef = useRef(0);
+
+  const segmentStarts = useMemo(() => {
+    let t = 0;
+    return executionPlan.map(segment => {
+      const start = t;
+      t += segment.duration;
+      return start;
+    });
+  }, [executionPlan]);
+
+  const totalDuration = useMemo(
+    () => executionPlan.reduce((sum, seg) => sum + seg.duration, 0),
+    [executionPlan]
+  );
+
+  const currentSegmentIndex = useMemo(() => {
+    let idx = 0;
+    for (let i = 0; i < segmentStarts.length; i++) {
+      if (segmentStarts[i] <= elapsedSeconds) idx = i;
+    }
+    return idx;
+  }, [segmentStarts, elapsedSeconds]);
+
+  const segmentElapsed = elapsedSeconds - (segmentStarts[currentSegmentIndex] || 0);
 
   useEffect(() => {
     document.body.classList.add('workout-page');
@@ -176,8 +199,8 @@ export default function WorkoutPage() {
       setExecutionPlan(newPlan);
 
       // Update trainer target for the current segment
-      if (isRunning && !isPaused && connectedDevice && newPlan[currentSegmentIndex]) {
-        setTargetPower(Math.round(newPlan[currentSegmentIndex].targetPower * intensityBias / 100));
+      if (isRunning && !isPaused && newPlan[currentSegmentIndex]) {
+        applyTarget(applyBias(newPlan[currentSegmentIndex].targetPower));
       }
     }
     setShowSettings(false);
@@ -361,87 +384,53 @@ export default function WorkoutPage() {
     // Wait for user to start from the preview screen.
   }, [workout, executionPlan.length, isRunning, countdownValue, hasEnded]);
 
+  const stopTicker = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  // Poll faster than 1 Hz; the recorder measures real elapsed time, so
+  // throttled or late timer callbacks do not slow the workout down.
+  const startTicker = () => {
+    stopTicker();
+    timerRef.current = setInterval(() => {
+      const recorder = recorderRef.current;
+      const added = recorder.tick(telemetryRef.current, { targetPower: targetPowerRef.current });
+      if (added > 0) {
+        setElapsedSeconds(recorder.elapsedSeconds + skipOffsetRef.current);
+      }
+    }, 250);
+  };
+
   const startWorkout = () => {
+    skipOffsetRef.current = 0;
+    recorderRef.current.start();
+    setElapsedSeconds(0);
     setIsRunning(true);
     setIsPaused(false);
-    setElapsedSeconds(0);
-    setSegmentElapsed(0);
-    setCurrentSegmentIndex(0);
     setHasEnded(false);
-    workoutStatsRef.current = {
-      totalPower: 0,
-      powerReadings: 0,
-      maxPower: 0,
-      totalCadence: 0,
-      cadenceReadings: 0
-    };
-
-    // Set initial target power with intensity bias applied
-    if (executionPlan[0] && connectedDevice) {
-      setTargetPower(applyBias(executionPlan[0].targetPower));
-    }
-
-    timerRef.current = setInterval(() => {
-      const currentTelemetry = telemetryRef.current;
-      if (currentTelemetry.power > 0) {
-        workoutStatsRef.current.totalPower += currentTelemetry.power;
-        workoutStatsRef.current.powerReadings += 1;
-        workoutStatsRef.current.maxPower = Math.max(workoutStatsRef.current.maxPower, currentTelemetry.power);
-      }
-
-      if (currentTelemetry.cadence > 0) {
-        workoutStatsRef.current.totalCadence += currentTelemetry.cadence;
-        workoutStatsRef.current.cadenceReadings += 1;
-      }
-
-      setElapsedSeconds(prev => prev + 1);
-      setSegmentElapsed(prev => prev + 1);
-    }, 1000);
+    startTicker();
   };
 
   const togglePause = () => {
     if (isPaused) {
-      // Resume
+      recorderRef.current.resume();
       setIsPaused(false);
-      timerRef.current = setInterval(() => {
-        const currentTelemetry = telemetryRef.current;
-        if (currentTelemetry.power > 0) {
-          workoutStatsRef.current.totalPower += currentTelemetry.power;
-          workoutStatsRef.current.powerReadings += 1;
-          workoutStatsRef.current.maxPower = Math.max(workoutStatsRef.current.maxPower, currentTelemetry.power);
-        }
-
-        if (currentTelemetry.cadence > 0) {
-          workoutStatsRef.current.totalCadence += currentTelemetry.cadence;
-          workoutStatsRef.current.cadenceReadings += 1;
-        }
-
-        setElapsedSeconds(prev => prev + 1);
-        setSegmentElapsed(prev => prev + 1);
-      }, 1000);
+      startTicker();
     } else {
-      // Pause
+      recorderRef.current.pause();
       setIsPaused(true);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      stopTicker();
     }
   };
 
   const skipSegment = () => {
     if (currentSegmentIndex < executionPlan.length - 1) {
-      const nextIndex = currentSegmentIndex + 1;
-      const elapsedToNext = executionPlan
-        .slice(0, nextIndex)
-        .reduce((sum, segment) => sum + segment.duration, 0);
-      setCurrentSegmentIndex(nextIndex);
-      setSegmentElapsed(0);
-      setElapsedSeconds(elapsedToNext);
-
-      if (executionPlan[nextIndex] && connectedDevice) {
-        setTargetPower(applyBias(executionPlan[nextIndex].targetPower));
-      }
+      const nextStart = segmentStarts[currentSegmentIndex + 1];
+      skipOffsetRef.current += nextStart - elapsedSeconds;
+      setElapsedSeconds(nextStart);
     }
   };
 
@@ -450,31 +439,24 @@ export default function WorkoutPage() {
   };
 
   const completeWorkout = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    stopTicker();
     if (countdownRef.current) clearInterval(countdownRef.current);
 
-    const duration = elapsedSeconds;
-    const avgPower = workoutStatsRef.current.powerReadings > 0
-      ? Math.round(workoutStatsRef.current.totalPower / workoutStatsRef.current.powerReadings)
-      : 0;
-    const avgCadence = workoutStatsRef.current.cadenceReadings > 0
-      ? Math.round(workoutStatsRef.current.totalCadence / workoutStatsRef.current.cadenceReadings)
-      : 0;
-    const distance = telemetryRef.current.distance || 0;
-    const totalKJ = (avgPower * duration) / 1000;
-    // Cycling standard: 1 kJ mechanical ≈ 1 kcal (body ~24% efficient: 1/0.24/4.184 ≈ 1.0)
-    // Same convention used by Garmin, Wahoo, TrainingPeaks
-    const calories = Math.round(totalKJ);
-    const intensityFactor = ftp > 0 ? (avgPower / ftp).toFixed(2) : '--';
-
+    const recorder = recorderRef.current;
+    recorder.stop();
+    const metrics = computeRideMetrics(recorder.samples, ftp);
     const stats = {
-      duration,
-      distance,
-      avgPower,
-      maxPower: Math.round(workoutStatsRef.current.maxPower),
-      avgCadence,
-      calories,
-      intensityFactor,
+      duration: metrics.duration,
+      distance: metrics.distance,
+      avgPower: metrics.avgPower,
+      maxPower: metrics.maxPower,
+      normalizedPower: metrics.normalizedPower,
+      avgCadence: metrics.avgCadence,
+      avgHeartRate: metrics.avgHeartRate,
+      kilojoules: metrics.kilojoules,
+      calories: metrics.calories,
+      intensityFactor: metrics.intensityFactor,
+      tss: metrics.tss,
       ftp
     };
 
@@ -486,37 +468,24 @@ export default function WorkoutPage() {
     setShowComplete(true);
   };
 
-  // Apply intensity bias changes immediately to the trainer
-  useEffect(() => {
-    if (!isRunning || isPaused || !executionPlan.length || !connectedDevice) return;
-    const currentPower = executionPlan[currentSegmentIndex]?.targetPower;
-    if (currentPower) {
-      setTargetPower(applyBias(currentPower));
-    }
-  }, [intensityBias]);
+  const applyTarget = (watts) => {
+    targetPowerRef.current = watts;
+    if (connectedDevice) setTargetPower(watts);
+  };
 
-  // Handle segment transitions
+  // Send the target whenever the segment changes, the ride starts or resumes,
+  // or the effort bias is adjusted
   useEffect(() => {
     if (!isRunning || isPaused || !executionPlan.length) return;
+    const segment = executionPlan[currentSegmentIndex];
+    if (segment) applyTarget(applyBias(segment.targetPower));
+  }, [currentSegmentIndex, isRunning, isPaused, intensityBias]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const currentSegment = executionPlan[currentSegmentIndex];
-    if (!currentSegment) return;
-
-    if (segmentElapsed >= currentSegment.duration) {
-      const nextIndex = currentSegmentIndex + 1;
-      if (nextIndex < executionPlan.length) {
-        setCurrentSegmentIndex(nextIndex);
-        setSegmentElapsed(0);
-
-        if (executionPlan[nextIndex] && connectedDevice) {
-          setTargetPower(applyBias(executionPlan[nextIndex].targetPower));
-        }
-      } else {
-        // Workout complete
-        completeWorkout();
-      }
-    }
-  }, [segmentElapsed, isRunning, isPaused, executionPlan, currentSegmentIndex]);
+  // Finish when the workout timeline is complete
+  useEffect(() => {
+    if (!isRunning || isPaused || !totalDuration) return;
+    if (elapsedSeconds >= totalDuration) completeWorkout();
+  }, [elapsedSeconds, isRunning, isPaused, totalDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -551,7 +520,6 @@ export default function WorkoutPage() {
   }
 
   const currentSegment = executionPlan[currentSegmentIndex] || {};
-  const totalDuration = executionPlan.reduce((sum, seg) => sum + seg.duration, 0);
   const remainingTime = totalDuration - elapsedSeconds;
   const upcomingSegments = executionPlan.slice(currentSegmentIndex, currentSegmentIndex + 6);
   const showPreview = !isRunning && !showComplete && countdownValue === null;
@@ -1010,6 +978,14 @@ export default function WorkoutPage() {
             </div>
 
             <div className="complete-secondary">
+              <div className="complete-secondary-stat">
+                <span className="secondary-label">NP:</span>
+                <span className="secondary-value">{completeStats.normalizedPower}W</span>
+              </div>
+              <div className="complete-secondary-stat">
+                <span className="secondary-label">TSS:</span>
+                <span className="secondary-value">{completeStats.tss}</span>
+              </div>
               <div className="complete-secondary-stat">
                 <span className="secondary-label">Intensity Factor:</span>
                 <span className="secondary-value">{completeStats.intensityFactor}</span>

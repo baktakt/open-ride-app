@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getAntManager } from '../services/antManager';
 import { BluetoothManagerWebBluetooth } from '../services/bluetoothManagerWebBluetooth';
+import { EMPTY_TELEMETRY, mergeTelemetry } from '../services/telemetry';
 
 const AntContext = createContext(null);
 
@@ -30,9 +31,8 @@ export function AntProvider({ children }) {
   const [isScanning,        setIsScanning]        = useState(false);
   const [discoveredDevices, setDiscoveredDevices] = useState([]);
   const [connectedDevice,   setConnectedDevice]   = useState(null);
-  const [telemetry,         setTelemetry]         = useState({
-    power: 0, cadence: 0, speed: 0, heartRate: 0, distance: 0, elapsedTime: 0
-  });
+  const [telemetry,         setTelemetry]         = useState(EMPTY_TELEMETRY);
+  const telemetryLastSeenRef = useRef({});
 
   // Ref so event handlers always access the latest discovered devices without
   // needing to be recreated whenever the list changes.
@@ -48,6 +48,8 @@ export function AntProvider({ children }) {
     setIsScanning(false);
     setDiscoveredDevices([]);
     setConnectedDevice(null);
+    setTelemetry(EMPTY_TELEMETRY);
+    telemetryLastSeenRef.current = {};
 
     // Sync current hardware state (e.g. switching back to ANT+ while dongle connected)
     const current = manager.getStatus ? manager.getStatus() : null;
@@ -63,7 +65,11 @@ export function AntProvider({ children }) {
           });
         }
       } else if (statusObj.connection === 'disconnected' || statusObj.connection === 'connecting') {
-        if (statusObj.connection !== 'connecting') setConnectedDevice(null);
+        if (statusObj.connection !== 'connecting') {
+          setConnectedDevice(null);
+          setTelemetry(EMPTY_TELEMETRY);
+          telemetryLastSeenRef.current = {};
+        }
         setStatus(statusObj.dongle === 'connected' ? 'scanning' : 'disconnected');
       }
       setIsScanning(statusObj.scan === 'scanning');
@@ -83,14 +89,8 @@ export function AntProvider({ children }) {
     };
 
     const handleTelemetry = (data) => {
-      setTelemetry({
-        power:       data.instantaneousPower || 0,
-        cadence:     data.instantaneousCadence || 0,
-        speed:       data.speed || 0,
-        heartRate:   data.heartRate || 0,
-        distance:    data.distance || 0,
-        elapsedTime: data.elapsedTime || 0,
-      });
+      const now = Date.now();
+      setTelemetry(prev => mergeTelemetry(prev, data, telemetryLastSeenRef.current, now));
     };
 
     manager.on('status',           handleStatus);

@@ -12,7 +12,18 @@ import {
   renameRoute,
 } from '../services/routeLibrary';
 import { saveRouteRide } from '../services/dataManager';
+import { createRideRecorder } from '../services/rideRecorder';
+import { computeRideMetrics } from '../services/rideMetrics';
 import '../styles/route.css';
+
+function readFtp() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('openride_settings') || '{}');
+    return parseInt(stored.ftp, 10) || 200;
+  } catch (_) {
+    return 200;
+  }
+}
 
 // ── Error Boundary ─────────────────────────────────────────────────────────────
 
@@ -306,14 +317,11 @@ export default function RoutePage() {
   const [summaryStats,  setSummaryStats]  = useState(null);
 
   // Refs for interval
-  const speedRef           = useRef(0);
-  const powerRef           = useRef(0);
-  const cadenceRef         = useRef(0);
+  const telemetryRef       = useRef(telemetry);
   const distanceRiddenRef  = useRef(0);
-  const durationRef        = useRef(0);
   const lastGradeRef       = useRef(-999);
-  const ridePowerAccRef    = useRef({ total: 0, count: 0 });
-  const rideCadenceAccRef  = useRef({ total: 0, count: 0 });
+  const recorderRef        = useRef(null);
+  if (!recorderRef.current) recorderRef.current = createRideRecorder();
 
   const fileInputRef = useRef(null);
 
@@ -325,9 +333,7 @@ export default function RoutePage() {
   const routeIdRef      = useRef(routeId);
 
   // Keep telemetry refs current for interval
-  useEffect(() => { speedRef.current   = telemetry.speed;   }, [telemetry.speed]);
-  useEffect(() => { powerRef.current   = telemetry.power;   }, [telemetry.power]);
-  useEffect(() => { cadenceRef.current = telemetry.cadence; }, [telemetry.cadence]);
+  useEffect(() => { telemetryRef.current = telemetry; }, [telemetry]);
 
   // Keep route info refs current
   useEffect(() => { routePointsRef.current = routePoints; }, [routePoints]);
@@ -404,16 +410,21 @@ export default function RoutePage() {
       if (diff > 0) gainRidden += diff;
     }
 
-    const p = ridePowerAccRef.current;
-    const c = rideCadenceAccRef.current;
+    const recorder = recorderRef.current;
+    recorder.stop();
+    const metrics = computeRideMetrics(recorder.samples, readFtp());
 
     const stats = {
-      routeName:     name,
-      distance:      distanceRiddenRef.current,
-      duration:      durationRef.current,
-      elevationGain: Math.round(gainRidden),
-      avgPower:      p.count > 0 ? Math.round(p.total / p.count) : 0,
-      avgCadence:    c.count > 0 ? Math.round(c.total / c.count) : 0,
+      routeName:       name,
+      distance:        distanceRiddenRef.current,
+      duration:        metrics.duration,
+      elevationGain:   Math.round(gainRidden),
+      avgPower:        metrics.avgPower,
+      normalizedPower: metrics.normalizedPower,
+      avgCadence:      metrics.avgCadence,
+      avgHeartRate:    metrics.avgHeartRate,
+      kilojoules:      metrics.kilojoules,
+      tss:             metrics.tss,
     };
 
     saveRouteRide({
@@ -524,18 +535,15 @@ export default function RoutePage() {
   useEffect(() => {
     if (!isRiding || isPaused || routePoints.length === 0 || !routeStats) return;
 
+    // Poll faster than 1 Hz; the recorder measures real elapsed time so a
+    // throttled background tab does not slow the ride down.
     const interval = setInterval(() => {
-      distanceRiddenRef.current += speedRef.current / 3600;
-      durationRef.current       += 1;
+      const recorder = recorderRef.current;
+      const added = recorder.tick(telemetryRef.current);
+      if (added === 0) return;
 
-      if (powerRef.current > 0) {
-        ridePowerAccRef.current.total += powerRef.current;
-        ridePowerAccRef.current.count += 1;
-      }
-      if (cadenceRef.current > 0) {
-        rideCadenceAccRef.current.total += cadenceRef.current;
-        rideCadenceAccRef.current.count += 1;
-      }
+      // speed is km/h → km per second × seconds elapsed
+      distanceRiddenRef.current += (telemetryRef.current.speed / 3600) * added;
 
       const distanceRidden = distanceRiddenRef.current;
 
@@ -571,21 +579,19 @@ export default function RoutePage() {
         distanceRidden,
         ele:      routePoints[idx].ele,
         grade:    gradeRounded,
-        duration: durationRef.current,
+        duration: recorder.elapsedSeconds,
       });
 
       if (distanceRidden >= routeStats.totalDistance) setIsRiding(false);
-    }, 1000);
+    }, 250);
 
     return () => clearInterval(interval);
   }, [isRiding, isPaused, routePoints, routeStats, setGrade]);
 
   const handleStartRide = useCallback(() => {
     distanceRiddenRef.current       = 0;
-    durationRef.current             = 0;
     lastGradeRef.current            = -999;
-    ridePowerAccRef.current         = { total: 0, count: 0 };
-    rideCadenceAccRef.current       = { total: 0, count: 0 };
+    recorderRef.current.start();
     setCurrentIndex(0);
     setIsPaused(false);
     setLiveStats({ distanceRidden: 0, ele: routePoints[0]?.ele ?? 0, grade: 0, duration: 0 });
@@ -593,12 +599,14 @@ export default function RoutePage() {
   }, [routePoints]);
 
   const handlePauseRide = useCallback(() => {
+    recorderRef.current.pause();
     setIsPaused(true);
     setGrade(0).catch(() => {});
   }, [setGrade]);
 
   const handleResumeRide = useCallback(() => {
     lastGradeRef.current = -999;
+    recorderRef.current.resume();
     setIsPaused(false);
   }, []);
 
@@ -612,10 +620,7 @@ export default function RoutePage() {
     setShowSummary(false);
     setSummaryStats(null);
     distanceRiddenRef.current       = 0;
-    durationRef.current             = 0;
     lastGradeRef.current            = -999;
-    ridePowerAccRef.current         = { total: 0, count: 0 };
-    rideCadenceAccRef.current       = { total: 0, count: 0 };
     setCurrentIndex(0);
     setLiveStats({ distanceRidden: 0, ele: routePointsRef.current[0]?.ele ?? 0, grade: 0, duration: 0 });
   }, []);

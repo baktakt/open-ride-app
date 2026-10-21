@@ -9,6 +9,8 @@
  * gives the frontend full self-sufficiency for AI-generated workouts.
  */
 
+import { estimatePlannedLoad } from './rideMetrics.js';
+
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
 function getAttr(el, name) {
@@ -71,24 +73,41 @@ function generateChartProfile(elements, numBars = 20) {
   return bars;
 }
 
-function estimateTSS(elements, totalDuration) {
-  if (totalDuration === 0) return 0;
+// Assumed intensity for segments without an explicit power target
+const FREE_RIDE_FTP_FRACTION = 0.65;
+const MAX_EFFORT_FTP_FRACTION = 1.2;
 
-  const sumPowerSqTime = elements.reduce((acc, el) => {
+/**
+ * Per-second planned intensity (fractions of FTP), used for load estimates.
+ */
+function ftpProfile(elements) {
+  const profile = [];
+  const pushLinear = (duration, from, to) => {
+    for (let t = 0; t < duration; t++) {
+      profile.push(from + (to - from) * (duration > 1 ? t / (duration - 1) : 0));
+    }
+  };
+  for (const el of elements) {
     if (el.type === 'IntervalsT') {
-      return acc
-        + el.repeat * el.onDuration * el.onPower * el.onPower
-        + el.repeat * el.offDuration * el.offPower * el.offPower;
+      for (let r = 0; r < el.repeat; r++) {
+        pushLinear(el.onDuration, el.onPower, el.onPower);
+        pushLinear(el.offDuration, el.offPower, el.offPower);
+      }
+    } else if (el.type === 'SteadyState') {
+      pushLinear(el.duration, el.power, el.power);
+    } else if (el.type === 'Warmup' || el.type === 'Cooldown' || el.type === 'Ramp') {
+      pushLinear(el.duration, el.powerLow, el.powerHigh);
+    } else if (el.type === 'MaxEffort') {
+      pushLinear(el.duration, MAX_EFFORT_FTP_FRACTION, MAX_EFFORT_FTP_FRACTION);
+    } else {
+      pushLinear(el.duration || 0, FREE_RIDE_FTP_FRACTION, FREE_RIDE_FTP_FRACTION);
     }
-    if (el.type === 'SteadyState') {
-      return acc + el.duration * el.power * el.power;
-    }
-    const avg = ((el.powerLow || 0) + (el.powerHigh || 0)) / 2 || 0.5;
-    return acc + (el.duration || 0) * avg * avg;
-  }, 0);
+  }
+  return profile;
+}
 
-  const np = Math.sqrt(Math.sqrt(sumPowerSqTime / totalDuration));
-  return Math.round((totalDuration / 3600) * np * np * 100);
+function estimateTSS(elements) {
+  return estimatePlannedLoad(ftpProfile(elements)).tss;
 }
 
 function formatDuration(seconds) {
@@ -234,7 +253,7 @@ export function parseOrwXml(xml, id) {
 
   const totalDuration = elements.reduce((s, el) => s + elementDuration(el), 0);
   const chartProfile = generateChartProfile(elements);
-  const estimatedTSS = estimateTSS(elements, totalDuration);
+  const estimatedTSS = estimateTSS(elements);
   const resolvedId = id || generateCustomId(name);
 
   return {
