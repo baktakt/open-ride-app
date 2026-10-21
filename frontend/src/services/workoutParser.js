@@ -10,6 +10,7 @@
  */
 
 import { estimatePlannedLoad } from './rideMetrics.js';
+import { rampEndpoints } from './workoutPlan.js';
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -37,6 +38,10 @@ function elementDuration(el) {
   return el.duration || 0;
 }
 
+// Assumed intensity for segments without an explicit power target
+const FREE_RIDE_FTP_FRACTION = 0.65;
+const MAX_EFFORT_FTP_FRACTION = 1.2;
+
 function generateChartProfile(elements, numBars = 20) {
   const total = elements.reduce((s, el) => s + elementDuration(el), 0);
   if (total === 0) return Array(numBars).fill(0.5);
@@ -58,9 +63,10 @@ function generateChartProfile(elements, numBars = 20) {
           power = el.power;
         } else if (el.type === 'Warmup' || el.type === 'Cooldown' || el.type === 'Ramp') {
           const frac = dur > 0 ? pos / dur : 0;
-          power = el.powerLow + frac * (el.powerHigh - el.powerLow);
+          const [start, end] = rampEndpoints(el);
+          power = start + frac * (end - start);
         } else if (el.type === 'MaxEffort') {
-          power = 1.4;
+          power = MAX_EFFORT_FTP_FRACTION;
         } else {
           power = 0.5;
         }
@@ -72,10 +78,6 @@ function generateChartProfile(elements, numBars = 20) {
   }
   return bars;
 }
-
-// Assumed intensity for segments without an explicit power target
-const FREE_RIDE_FTP_FRACTION = 0.65;
-const MAX_EFFORT_FTP_FRACTION = 1.2;
 
 /**
  * Per-second planned intensity (fractions of FTP), used for load estimates.
@@ -96,7 +98,7 @@ function ftpProfile(elements) {
     } else if (el.type === 'SteadyState') {
       pushLinear(el.duration, el.power, el.power);
     } else if (el.type === 'Warmup' || el.type === 'Cooldown' || el.type === 'Ramp') {
-      pushLinear(el.duration, el.powerLow, el.powerHigh);
+      pushLinear(el.duration, ...rampEndpoints(el));
     } else if (el.type === 'MaxEffort') {
       pushLinear(el.duration, MAX_EFFORT_FTP_FRACTION, MAX_EFFORT_FTP_FRACTION);
     } else {
