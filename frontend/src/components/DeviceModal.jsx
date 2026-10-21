@@ -58,6 +58,10 @@ export default function DeviceModal({ isOpen, onClose }) {
     stopScan,
     connect,
     disconnect,
+    heartRateMonitorStatus,
+    heartRateMonitorSupported,
+    connectHeartRateMonitor,
+    disconnectHeartRateMonitor,
   } = useAnt();
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -93,6 +97,22 @@ export default function DeviceModal({ isOpen, onClose }) {
       await disconnect();
     } catch (err) {
       console.error('Failed to disconnect:', err);
+    }
+  };
+
+  const handleConnectHeartRate = async () => {
+    try {
+      await connectHeartRateMonitor();
+    } catch (err) {
+      console.error('Failed to connect heart rate monitor:', err);
+    }
+  };
+
+  const handleDisconnectHeartRate = async () => {
+    try {
+      await disconnectHeartRateMonitor();
+    } catch (err) {
+      console.error('Failed to disconnect heart rate monitor:', err);
     }
   };
 
@@ -338,6 +358,35 @@ export default function DeviceModal({ isOpen, onClose }) {
               </div>
             )}
           </div>
+
+          {/* Heart rate strap (Bluetooth) — works with either trainer connection */}
+          {heartRateMonitorSupported && (
+            <div className="hrm-section">
+              <div className="hrm-info">
+                <span className="hrm-title">Heart rate monitor</span>
+                <span className="hrm-meta">
+                  {heartRateMonitorStatus.connection === 'connected'
+                    ? `Connected to ${heartRateMonitorStatus.deviceName || 'strap'}`
+                    : heartRateMonitorStatus.connection === 'connecting'
+                      ? 'Connecting…'
+                      : 'Optional Bluetooth chest strap or arm band'}
+                </span>
+              </div>
+              {heartRateMonitorStatus.connection === 'connected' ? (
+                <button className="btn btn-danger btn-sm" onClick={handleDisconnectHeartRate}>
+                  Disconnect
+                </button>
+              ) : (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleConnectHeartRate}
+                  disabled={heartRateMonitorStatus.connection === 'connecting'}
+                >
+                  Pair HR strap
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

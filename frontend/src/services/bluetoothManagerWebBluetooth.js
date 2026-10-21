@@ -16,12 +16,24 @@
  * Requires a Chromium-based browser (Chrome 56+, Edge, Opera) with Web Bluetooth enabled.
  */
 
+import {
+  parseIndoorBikeData,
+  parseCyclingPowerMeasurement,
+  updateCrankCadence,
+  encodeTargetResistance,
+  parseResistanceRange,
+} from './bleParsers.js';
+
 // ─── FTMS UUIDs ──────────────────────────────────────────────────────────────
 const FTMS_SERVICE             = 0x1826;
-const FITNESS_MACHINE_FEATURE  = 0x2ACC;
 const INDOOR_BIKE_DATA         = 0x2AD2;
 const FITNESS_MACHINE_STATUS   = 0x2ADA;
 const FTMS_CONTROL_POINT       = 0x2AD9;
+const SUPPORTED_RESISTANCE_RANGE = 0x2AD6;
+
+// Used when the trainer does not advertise its resistance range: maps
+// 0–100 % onto the full UINT8 parameter range (0–25.5) defined by FTMS v1.0.
+const DEFAULT_RESISTANCE_RANGE = { min: 0, max: 25.5 };
 
 // ─── Cycling Power Service UUIDs ─────────────────────────────────────────────
 const CYCLING_POWER_SERVICE    = 0x1818;
@@ -75,6 +87,10 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
     this._powerMeasureChar  = null;
     this._hasControl        = false;
     this._serviceType       = null;  // 'ftms' | 'cps' | null
+    this._resistanceRange   = DEFAULT_RESISTANCE_RANGE;
+    this._crankState        = null;  // CPS crank-revolution cadence state
+    this._listenedDevice    = null;  // device carrying our disconnect listener
+    this._onGattDisconnected = this._onGattDisconnected.bind(this);
 
     // Status mirrors (same names as ANT+ manager for API compatibility)
     this._dongleStatus     = 'disconnected'; // 'disconnected'|'connected'|'error'
@@ -148,7 +164,6 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
         optionalServices: [
           FTMS_SERVICE,
           CYCLING_POWER_SERVICE,
-          FITNESS_MACHINE_FEATURE,
         ],
       });
 
@@ -198,17 +213,13 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
     try {
       this._gattServer = await device.gatt.connect();
 
-      // Handle unexpected disconnection
-      device.addEventListener('gattserverdisconnected', () => {
-        this.log('info', 'GATT server disconnected unexpectedly');
-        this._tearDownCharacteristics();
-        this._connectedDeviceId   = null;
-        this._connectedDeviceName = null;
-        this._hasControl          = false;
-        this._serviceType         = null;
-        this._setConnectionStatus('disconnected');
-        this._setDongleStatus('connected'); // BT adapter still available
-      });
+      // Handle unexpected disconnection — one listener per device, so
+      // repeated connects do not stack duplicate handlers
+      if (this._listenedDevice !== device) {
+        this._listenedDevice?.removeEventListener('gattserverdisconnected', this._onGattDisconnected);
+        device.addEventListener('gattserverdisconnected', this._onGattDisconnected);
+        this._listenedDevice = device;
+      }
 
       // ── Attempt FTMS ──────────────────────────────────────────────────────
       let serviceFound = false;
@@ -248,6 +259,20 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
       this._setConnectionStatus('disconnected');
       return false;
     }
+  }
+
+  _onGattDisconnected() {
+    // disconnect() has already reset state when we initiated it (the event
+    // is dispatched asynchronously, after disconnect() returns)
+    if (this._connectionStatus === 'disconnected') return;
+    this.log('info', 'GATT server disconnected unexpectedly');
+    this._tearDownCharacteristics();
+    this._connectedDeviceId   = null;
+    this._connectedDeviceName = null;
+    this._hasControl          = false;
+    this._serviceType         = null;
+    this._setConnectionStatus('disconnected');
+    this._setDongleStatus('connected'); // BT adapter still available
   }
 
   /** Disconnect cleanly from the GATT server. */
@@ -293,6 +318,17 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
         this.log('info', `FTMS Status: ${bytes}`);
       });
     } catch { /* non-critical */ }
+
+    // Supported Resistance Level Range — scales setResistance() percentages
+    this._resistanceRange = DEFAULT_RESISTANCE_RANGE;
+    try {
+      const rangeChar = await this._ftmsService.getCharacteristic(SUPPORTED_RESISTANCE_RANGE);
+      const range = parseResistanceRange(await rangeChar.readValue());
+      if (range) {
+        this._resistanceRange = range;
+        this.log('info', `Resistance range: ${range.min}–${range.max}`);
+      }
+    } catch { /* optional characteristic */ }
 
     // Fitness Machine Control Point — ERG / resistance control
     try {
@@ -343,7 +379,9 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
     const result = dataView.getUint8(2);
     const names  = { 0x01:'Success', 0x02:'NotSupported', 0x03:'InvalidParam',
                      0x04:'OpFailed', 0x05:'ControlNotPermitted' };
-    this.log('info', `CP response: op=0x${op.toString(16)} → ${names[result] || 'Unknown'}`);
+    const level  = result === 0x01 ? 'info' : 'warn';
+    this.log(level, `CP response: op=0x${op.toString(16)} → ${names[result] || 'Unknown'}`);
+    if (result === 0x05) this._hasControl = false; // re-request on next command
   }
 
   // ── Characteristic tear-down ───────────────────────────────────────────────
@@ -357,6 +395,7 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
     this._indoorBikeChar   = null;
     this._powerMeasureChar = null;
     this._controlPointChar = null;
+    this._crankState       = null;
   }
 
   // ── ERG / resistance control ───────────────────────────────────────────────
@@ -387,7 +426,8 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
   }
 
   /**
-   * Set resistance level via FTMS (Op 0x04).
+   * Set resistance level via FTMS (Op 0x04), as a percentage of the
+   * trainer's advertised resistance range.
    * @param {number} percent — 0..100
    */
   async setResistance(percent) {
@@ -395,17 +435,11 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
       this.log('error', 'setResistance: not connected or no control');
       return false;
     }
-    percent = Math.max(0, Math.min(100, percent));
-    // FTMS resistance level is sint16 in 0.1 steps (unitless); map 0–100 % → 0–1000
-    const level = Math.round(percent * 10);
+    const { buffer, level } = encodeTargetResistance(percent, this._resistanceRange);
     try {
       if (!this._hasControl) await this._requestControl();
-      const buf  = new ArrayBuffer(3);
-      const view = new DataView(buf);
-      view.setUint8(0, FTMS_OP.SET_TARGET_RESISTANCE);
-      view.setInt16(1, level, true); // sint16, little-endian
-      await this._controlPointChar.writeValueWithResponse(buf);
-      this.log('info', `Resistance → ${percent}% (level ${level})`);
+      await this._controlPointChar.writeValueWithResponse(buffer);
+      this.log('info', `Resistance → ${Math.round(percent)}% (level ${level})`);
       return true;
     } catch (err) {
       this.log('error', `setResistance failed: ${err.message}`);
@@ -453,127 +487,34 @@ export class BluetoothManagerWebBluetooth extends EventEmitter {
 
   // ── Telemetry parsing ──────────────────────────────────────────────────────
 
-  /**
-   * Parse Indoor Bike Data characteristic (0x2AD2).
-   * Spec: FTMS §4.9.1 — flags are a uint16 at offset 0, fields follow in order.
-   *
-   * Field presence (flag bits):
-   *   bit 0: Instantaneous Speed ABSENT (present when 0)
-   *   bit 1: Average Speed
-   *   bit 2: Instantaneous Cadence
-   *   bit 3: Average Cadence
-   *   bit 4: Total Distance (3 bytes, uint24)
-   *   bit 5: Resistance Level
-   *   bit 6: Instantaneous Power
-   *   bit 7: Average Power
-   *   bit 8: Expended Energy (5 bytes)
-   *   bit 9: Heart Rate
-   *  bit 10: Metabolic Equivalent
-   *  bit 11: Elapsed Time
-   *  bit 12: Remaining Time
-   */
+  /** Indoor Bike Data (0x2AD2) notification → telemetry. */
   _handleIndoorBikeData(dataView) {
-    let offset = 0;
-    const flags = dataView.getUint16(offset, true);
-    offset += 2;
-
-    const t = {
-      timestamp:  Date.now(),
-      deviceId:   this._connectedDeviceId,
-    };
-
-    // Instantaneous Speed (present when bit 0 = 0; unit: km/h × 0.01)
-    if (!(flags & 0x0001)) {
-      if (offset + 2 <= dataView.byteLength) {
-        t.speed = dataView.getUint16(offset, true) * 0.01;
-        offset += 2;
-      }
-    }
-    // Average Speed
-    if (flags & 0x0002) offset += 2;
-
-    // Instantaneous Cadence (rpm × 0.5)
-    if (flags & 0x0004) {
-      if (offset + 2 <= dataView.byteLength) {
-        t.instantaneousCadence = dataView.getUint16(offset, true) * 0.5;
-        offset += 2;
-      }
-    }
-    // Average Cadence
-    if (flags & 0x0008) offset += 2;
-
-    // Total Distance (uint24, metres)
-    if (flags & 0x0010) {
-      if (offset + 3 <= dataView.byteLength) {
-        t.distance = dataView.getUint8(offset)
-          | (dataView.getUint8(offset + 1) << 8)
-          | (dataView.getUint8(offset + 2) << 16);
-        offset += 3;
-      }
-    }
-    // Resistance Level
-    if (flags & 0x0020) offset += 2;
-
-    // Instantaneous Power (sint16, watts)
-    if (flags & 0x0040) {
-      if (offset + 2 <= dataView.byteLength) {
-        t.instantaneousPower = dataView.getInt16(offset, true);
-        offset += 2;
-      }
-    }
-    // Average Power
-    if (flags & 0x0080) offset += 2;
-
-    // Expended Energy (uint16 total + uint16/hr + uint8/min = 5 bytes)
-    if (flags & 0x0100) offset += 5;
-
-    // Heart Rate (uint8, bpm)
-    if (flags & 0x0200) {
-      if (offset + 1 <= dataView.byteLength) {
-        t.heartRate = dataView.getUint8(offset);
-        offset += 1;
-      }
-    }
-    // Metabolic Equivalent
-    if (flags & 0x0400) offset += 1;
-
-    // Elapsed Time (uint16, seconds)
-    if (flags & 0x0800) {
-      if (offset + 2 <= dataView.byteLength) {
-        t.elapsedTime = dataView.getUint16(offset, true);
-        offset += 2;
-      }
-    }
-    // Remaining Time
-    if (flags & 0x1000) offset += 2;
-
-    this.emit('telemetry', t);
+    this.emit('telemetry', {
+      timestamp: Date.now(),
+      deviceId:  this._connectedDeviceId,
+      ...parseIndoorBikeData(dataView),
+    });
   }
 
   /**
-   * Parse Cycling Power Measurement (0x2A63).
-   * Provides instantaneous power; cadence derivable from crank revolution data.
+   * Cycling Power Measurement (0x2A63) notification → telemetry.
+   * Cadence is derived from successive crank revolution readings.
    */
   _handleCpsMeasurement(dataView) {
-    if (dataView.byteLength < 4) return;
-    const flags = dataView.getUint16(0, true);
-    const power = dataView.getInt16(2, true); // sint16, watts
+    const measurement = parseCyclingPowerMeasurement(dataView);
+    if (!measurement) return;
+    const now = Date.now();
 
     const t = {
-      timestamp:          Date.now(),
+      timestamp:          now,
       deviceId:           this._connectedDeviceId,
-      instantaneousPower: power,
+      instantaneousPower: measurement.instantaneousPower,
     };
 
-    // Crank revolution data → cadence (optional)
-    let offset = 4;
-    if (flags & 0x0001) offset += 1; // Pedal Power Balance
-    if (flags & 0x0004) offset += 4; // Accumulated Torque
-    if (flags & 0x0010) offset += 6; // Wheel Revolution Data
-    if ((flags & 0x0020) && offset + 4 <= dataView.byteLength) {
-      // Crank Revolution Data: cumRevs (uint16) + lastEventTime (uint16)
-      // Cadence calculation requires tracking delta over time; skip for now
-      offset += 4;
+    if (measurement.crank) {
+      const { state, cadence } = updateCrankCadence(this._crankState, measurement.crank, now);
+      this._crankState = state;
+      if (cadence !== undefined) t.instantaneousCadence = Math.round(cadence);
     }
 
     this.emit('telemetry', t);

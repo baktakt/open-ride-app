@@ -961,6 +961,32 @@ h1, h2, h3, h4 {
   color: white;
 }
 
+.hrm-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--overlay-sm);
+  border-radius: 12px;
+}
+
+.hrm-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.hrm-title {
+  font-weight: 600;
+}
+
+.hrm-meta {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 .devices-found-section {
   background: var(--overlay-sm);
   border-radius: 12px;
