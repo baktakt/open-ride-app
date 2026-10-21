@@ -122,6 +122,18 @@ const FREE_RIDE_FTP_FRACTION = 0.65;
 const MAX_EFFORT_FTP_FRACTION = 1.2;
 const NP_WINDOW_SECONDS = 30;
 
+// Start and end intensity for ramp-type elements. Cooldowns always ramp down
+// and warmups always ramp up, whichever attribute order the file uses (Zwift
+// writes Cooldown PowerLow=start/PowerHigh=end; the Open Ride library writes
+// PowerHigh > PowerLow). A plain Ramp is taken literally (PowerLow → PowerHigh).
+export function rampEndpoints(element: WarmupElement | CooldownElement | RampElement): [number, number] {
+  const low = element.powerLow;
+  const high = element.powerHigh;
+  if (element.type === 'Warmup') return [Math.min(low, high), Math.max(low, high)];
+  if (element.type === 'Cooldown') return [Math.max(low, high), Math.min(low, high)];
+  return [low, high];
+}
+
 // Per-second planned intensity (fractions of FTP)
 export function ftpProfile(elements: WorkoutElement[]): number[] {
   const profile: number[] = [];
@@ -144,7 +156,7 @@ export function ftpProfile(elements: WorkoutElement[]): number[] {
       case 'Warmup':
       case 'Cooldown':
       case 'Ramp':
-        pushLinear(element.duration, element.powerLow, element.powerHigh);
+        pushLinear(element.duration, ...rampEndpoints(element));
         break;
       case 'MaxEffort':
         pushLinear(element.duration, MAX_EFFORT_FTP_FRACTION, MAX_EFFORT_FTP_FRACTION);
@@ -416,15 +428,18 @@ function generateChartProfile(elements: WorkoutElement[], numBars: number = 20):
     } else if (element.type === 'Ramp' || element.type === 'Warmup' || element.type === 'Cooldown') {
       const steps = Math.max(2, Math.ceil(element.duration / 60));
       const stepDuration = element.duration / steps;
+      const [start, end] = rampEndpoints(element);
       for (let i = 0; i < steps; i++) {
         const progress = i / (steps - 1 || 1);
-        const power = (element.powerLow || 0.5) + ((element.powerHigh || 0.5) - (element.powerLow || 0.5)) * progress;
+        const power = start + (end - start) * progress;
         powerSegments.push({ duration: stepDuration, power });
       }
     } else if (element.type === 'SteadyState') {
       powerSegments.push({ duration: element.duration, power: element.power });
+    } else if (element.type === 'MaxEffort') {
+      powerSegments.push({ duration: element.duration, power: MAX_EFFORT_FTP_FRACTION });
     } else {
-      // FreeRide, MaxEffort - use a default power
+      // FreeRide - use a default power
       powerSegments.push({ duration: element.duration, power: 0.5 });
     }
   }

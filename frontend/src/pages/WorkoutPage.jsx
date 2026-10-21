@@ -6,6 +6,12 @@ import { useAnt } from '../contexts/AntContext';
 import { loadCachedWorkout, loadCustomWorkouts, saveCachedWorkout } from '../services/dataManager';
 import { createRideRecorder } from '../services/rideRecorder';
 import { computeRideMetrics } from '../services/rideMetrics';
+import {
+  buildExecutionPlan,
+  targetPowerAt,
+  buildTextEvents,
+  activeTextEvent,
+} from '../services/workoutPlan';
 import '../styles/workout.css';
 import '../styles/notifications.css';
 
@@ -26,44 +32,59 @@ function WorkoutGraph({ executionPlan, elapsedSeconds, totalDuration, ftp }) {
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
+    const cssWidth = width / window.devicePixelRatio;
+    const cssHeight = height / window.devicePixelRatio;
+    const effectiveFtp = ftp || 200;
+
+    // Resistance-mode segments (free ride / max effort) have no power target;
+    // draw them at a nominal height so they remain visible.
+    const displayPower = (segment, which) => {
+      if (segment.mode !== 'erg') {
+        return segment.type === 'MaxEffort' ? effectiveFtp * 1.2 : effectiveFtp * 0.5;
+      }
+      return which === 'start' ? segment.startPower : segment.endPower;
+    };
+
     // Find max power for scaling
-    const maxPower = Math.max(...executionPlan.map(s => s.targetPower), 300);
+    const maxPower = Math.max(
+      ...executionPlan.map(s => Math.max(displayPower(s, 'start'), displayPower(s, 'end'))),
+      300
+    );
 
-    // Draw each segment
+    // Draw each segment (ramps as sloped tops)
     let currentX = 0;
-    executionPlan.forEach((segment, index) => {
-      const segmentWidth = (segment.duration / totalDuration) * (width / window.devicePixelRatio);
-      const segmentHeight = (segment.targetPower / maxPower) * (height / window.devicePixelRatio) * 0.8;
+    executionPlan.forEach((segment) => {
+      const segmentWidth = (segment.duration / totalDuration) * cssWidth;
+      const startHeight = (displayPower(segment, 'start') / maxPower) * cssHeight * 0.8;
+      const endHeight = (displayPower(segment, 'end') / maxPower) * cssHeight * 0.8;
 
-      // Color based on power intensity
+      // Color based on average power intensity
       let color;
-      const intensity = (segment.targetPower / (ftp || 200)) * 100;
-      if (intensity < 60) color = 'rgba(76, 175, 80, 0.7)'; // Green
+      const avgPower = (displayPower(segment, 'start') + displayPower(segment, 'end')) / 2;
+      const intensity = (avgPower / effectiveFtp) * 100;
+      if (segment.mode !== 'erg') color = 'rgba(158, 158, 158, 0.5)'; // Grey
+      else if (intensity < 60) color = 'rgba(76, 175, 80, 0.7)'; // Green
       else if (intensity < 75) color = 'rgba(255, 193, 7, 0.7)'; // Yellow
       else if (intensity < 90) color = 'rgba(255, 152, 0, 0.7)'; // Orange
       else color = 'rgba(244, 67, 54, 0.7)'; // Red
 
+      ctx.beginPath();
+      ctx.moveTo(currentX, cssHeight);
+      ctx.lineTo(currentX, cssHeight - startHeight);
+      ctx.lineTo(currentX + segmentWidth, cssHeight - endHeight);
+      ctx.lineTo(currentX + segmentWidth, cssHeight);
+      ctx.closePath();
       ctx.fillStyle = color;
-      ctx.fillRect(
-        currentX,
-        (height / window.devicePixelRatio) - segmentHeight,
-        segmentWidth,
-        segmentHeight
-      );
+      ctx.fill();
 
       // Draw border
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(
-        currentX,
-        (height / window.devicePixelRatio) - segmentHeight,
-        segmentWidth,
-        segmentHeight
-      );
+      ctx.stroke();
 
       currentX += segmentWidth;
     });
-  }, [executionPlan, totalDuration]);
+  }, [executionPlan, totalDuration, ftp]);
 
   return <canvas ref={canvasRef} id="workout-graph" style={{ width: '100%', height: '100%' }} />;
 }
@@ -71,7 +92,7 @@ function WorkoutGraph({ executionPlan, elapsedSeconds, totalDuration, ftp }) {
 export default function WorkoutPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { connectedDevice, telemetry, setTargetPower, setWorkoutActive } = useAnt();
+  const { connectedDevice, telemetry, setTargetPower, setResistance, setWorkoutActive } = useAnt();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
   const [workout, setWorkout] = useState(null);
@@ -116,6 +137,8 @@ export default function WorkoutPage() {
   // Distance ridden since start, from positive deltas of the trainer's counter
   const rideDistanceRef = useRef({ total: 0, last: null });
   const targetPowerRef = useRef(0);
+  // Last command sent to the trainer, to avoid resending unchanged targets
+  const lastCommandRef = useRef(null);
 
   const segmentStarts = useMemo(() => {
     let t = 0;
@@ -140,6 +163,9 @@ export default function WorkoutPage() {
   }, [segmentStarts, elapsedSeconds]);
 
   const segmentElapsed = elapsedSeconds - (segmentStarts[currentSegmentIndex] || 0);
+
+  const textEvents = useMemo(() => buildTextEvents(workout?.elements), [workout]);
+  const coachMessage = activeTextEvent(textEvents, elapsedSeconds);
 
   useEffect(() => {
     document.body.classList.add('workout-page');
@@ -197,13 +223,8 @@ export default function WorkoutPage() {
 
     // Rebuild execution plan with new FTP
     if (workoutElementsRef.current) {
-      const newPlan = buildExecutionPlan(workoutElementsRef.current, newFtp);
-      setExecutionPlan(newPlan);
-
-      // Update trainer target for the current segment
-      if (isRunning && !isPaused && newPlan[currentSegmentIndex]) {
-        applyTarget(applyBias(newPlan[currentSegmentIndex].targetPower));
-      }
+      // The trainer-command effect picks up the new targets
+      setExecutionPlan(buildExecutionPlan(workoutElementsRef.current, newFtp));
     }
     setShowSettings(false);
   };
@@ -281,75 +302,6 @@ export default function WorkoutPage() {
     }
   };
 
-  const buildExecutionPlan = (elements, ftpValue) => {
-    if (!elements) return [];
-    const effectiveFtp = ftpValue || ftp;
-
-    const plan = [];
-    elements.forEach(element => {
-      if (element.type === 'SteadyState') {
-        plan.push({
-          name: 'Steady',
-          duration: element.duration,
-          targetPower: Math.round(element.power * effectiveFtp),
-          targetCadence: element.cadence || 90,
-          text: element.textEvents?.[0]?.message
-        });
-      } else if (element.type === 'Warmup') {
-        plan.push({
-          name: 'Warmup',
-          duration: element.duration,
-          targetPower: Math.round(((element.powerLow + element.powerHigh) / 2) * effectiveFtp),
-          targetCadence: element.cadence || 90,
-          text: element.textEvents?.[0]?.message
-        });
-      } else if (element.type === 'Cooldown') {
-        plan.push({
-          name: 'Cooldown',
-          duration: element.duration,
-          targetPower: Math.round(((element.powerLow + element.powerHigh) / 2) * effectiveFtp),
-          targetCadence: element.cadence || 90,
-          text: element.textEvents?.[0]?.message
-        });
-      } else if (element.type === 'Ramp') {
-        plan.push({
-          name: 'Ramp',
-          duration: element.duration,
-          targetPower: Math.round(((element.powerLow + element.powerHigh) / 2) * effectiveFtp),
-          targetCadence: element.cadence || 90,
-          text: element.textEvents?.[0]?.message
-        });
-      } else if (element.type === 'IntervalsT') {
-        for (let i = 0; i < element.repeat; i++) {
-          plan.push({
-            name: `Interval ${i + 1} (ON)`,
-            duration: element.onDuration,
-            targetPower: Math.round(element.onPower * effectiveFtp),
-            targetCadence: element.cadence || 90,
-            text: `Interval ${i + 1} - Push!`
-          });
-          plan.push({
-            name: `Recovery ${i + 1}`,
-            duration: element.offDuration,
-            targetPower: Math.round(element.offPower * effectiveFtp),
-            targetCadence: element.cadenceResting || 85,
-            text: `Interval ${i + 1} - Recover`
-          });
-        }
-      } else if (element.type === 'FreeRide') {
-        plan.push({
-          name: 'Free Ride',
-          duration: element.duration,
-          targetPower: 0,
-          targetCadence: 90,
-          text: 'Ride at your own pace'
-        });
-      }
-    });
-
-    return plan;
-  };
-
   const getCountdownDuration = () => {
     try {
       const settings = localStorage.getItem('openride_settings');
@@ -413,6 +365,7 @@ export default function WorkoutPage() {
   const startWorkout = () => {
     skipOffsetRef.current = 0;
     rideDistanceRef.current = { total: 0, last: null };
+    lastCommandRef.current = null;
     recorderRef.current.start();
     setElapsedSeconds(0);
     setIsRunning(true);
@@ -424,6 +377,7 @@ export default function WorkoutPage() {
   const togglePause = () => {
     if (isPaused) {
       recorderRef.current.resume();
+      lastCommandRef.current = null;
       setIsPaused(false);
       startTicker();
     } else {
@@ -475,18 +429,27 @@ export default function WorkoutPage() {
     setShowComplete(true);
   };
 
-  const applyTarget = (watts) => {
-    targetPowerRef.current = watts;
-    if (connectedDevice) setTargetPower(watts);
-  };
-
-  // Send the target whenever the segment changes, the ride starts or resumes,
-  // or the effort bias is adjusted
+  // Keep the trainer on the current target: re-evaluated every second so ramps
+  // are followed smoothly, and re-sent after a reconnect (new device id).
   useEffect(() => {
     if (!isRunning || isPaused || !executionPlan.length) return;
     const segment = executionPlan[currentSegmentIndex];
-    if (segment) applyTarget(applyBias(segment.targetPower));
-  }, [currentSegmentIndex, isRunning, isPaused, intensityBias]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!segment) return;
+
+    const deviceId = connectedDevice?.deviceId ?? null;
+    const command = segment.mode === 'erg'
+      ? { mode: 'erg', value: applyBias(targetPowerAt(segment, segmentElapsed)), deviceId }
+      : { mode: 'resistance', value: segment.resistance, deviceId };
+    targetPowerRef.current = command.mode === 'erg' ? command.value : 0;
+
+    const last = lastCommandRef.current;
+    if (last && last.mode === command.mode && last.value === command.value && last.deviceId === deviceId) return;
+    if (!connectedDevice) return;
+
+    lastCommandRef.current = command;
+    if (command.mode === 'erg') setTargetPower(command.value);
+    else setResistance(command.value);
+  }, [executionPlan, currentSegmentIndex, segmentElapsed, isRunning, isPaused, intensityBias, connectedDevice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Finish when the workout timeline is complete
   useEffect(() => {
@@ -530,7 +493,8 @@ export default function WorkoutPage() {
   const remainingTime = totalDuration - elapsedSeconds;
   const upcomingSegments = executionPlan.slice(currentSegmentIndex, currentSegmentIndex + 6);
   const showPreview = !isRunning && !showComplete && countdownValue === null;
-  const targetPower = Math.max(0, applyBias(currentSegment.targetPower || 0));
+  const currentTarget = targetPowerAt(currentSegment, segmentElapsed);
+  const targetPower = currentTarget ? Math.max(0, applyBias(currentTarget)) : 0;
   const currentPower = Math.round(telemetry.power || 0);
   const targetCadence = Math.max(0, Math.round(currentSegment.targetCadence || 0));
   const currentCadence = Math.round(telemetry.cadence || 0);
@@ -539,7 +503,7 @@ export default function WorkoutPage() {
     if (!target) {
       return {
         status: 'free',
-        statusText: 'FREE RIDE',
+        statusText: currentSegment.type === 'MaxEffort' ? 'ALL OUT' : 'FREE RIDE',
         gaugePosition: 50,
         okWidth: 0,
       };
@@ -576,6 +540,13 @@ export default function WorkoutPage() {
 
   const powerCardClass = `metric-card gauge-card status-${powerGauge.status}`;
   const cadenceCardClass = `metric-card gauge-card status-${cadenceGauge.status}`;
+
+  const formatSegmentIntensity = (segment) => {
+    if (segment.mode !== 'erg') return segment.type === 'MaxEffort' ? 'All out' : 'Free';
+    const start = Math.round(segment.startFtp * 100);
+    const end = Math.round(segment.endFtp * 100);
+    return start === end ? `${start}% FTP` : `${start}→${end}% FTP`;
+  };
 
   const getZoneClass = (targetPower) => {
     if (!targetPower || !ftp) return 2;
@@ -629,6 +600,11 @@ export default function WorkoutPage() {
             className="workout-progress-line"
             style={{ left: `${(elapsedSeconds / totalDuration) * 100}%` }}
           ></div>
+          {coachMessage && (
+            <div className="coach-message" role="status" key={`${coachMessage.time}-${coachMessage.message}`}>
+              {coachMessage.message}
+            </div>
+          )}
         </div>
 
         <div className="segment-info">
@@ -804,14 +780,14 @@ export default function WorkoutPage() {
         <h3>Up Next</h3>
         <div className="upcoming-list">
           {upcomingSegments.map((segment, idx) => {
-            const zone = getZoneClass(segment.targetPower);
+            const zone = getZoneClass((segment.startPower + segment.endPower) / 2);
             const isActive = idx === 0;
             return (
               <div key={`${segment.name}-${idx}`} className={`upcoming-item ${isActive ? 'active' : ''} zone-${zone}`}>
                 <div className="upcoming-name">{segment.name}</div>
                 <div className="upcoming-details">
                   <span>{formatTime(segment.duration)}</span>
-                  <span>{segment.targetPower ? `${Math.round((segment.targetPower / ftp) * 100)}% FTP` : 'Free'}</span>
+                  <span>{formatSegmentIntensity(segment)}</span>
                 </div>
               </div>
             );

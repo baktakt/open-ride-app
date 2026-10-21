@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { estimateTSS, loadAllWorkouts, normalizedPower } from '../src/workoutParser.js';
+import { estimateTSS, loadAllWorkouts, normalizedPower, rampEndpoints } from '../src/workoutParser.js';
 
 const workoutsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '../workouts');
 
@@ -30,4 +30,10 @@ test('all bundled workouts parse with elements', () => {
     assert.ok(w.elements.length > 0, `${w.id} has no elements`);
     assert.ok(w.totalDuration > 0, `${w.id} has no duration`);
   }
+});
+
+test('cooldowns ramp down whichever attribute order is used', () => {
+  assert.deepEqual(rampEndpoints({ type: 'Cooldown', duration: 60, powerLow: 0.35, powerHigh: 0.55, textEvents: [] }), [0.55, 0.35]);
+  assert.deepEqual(rampEndpoints({ type: 'Cooldown', duration: 60, powerLow: 0.75, powerHigh: 0.25, textEvents: [] }), [0.75, 0.25]);
+  assert.deepEqual(rampEndpoints({ type: 'Warmup', duration: 60, powerLow: 0.65, powerHigh: 0.4, textEvents: [] }), [0.4, 0.65]);
 });
