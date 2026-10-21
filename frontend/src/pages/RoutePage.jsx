@@ -14,6 +14,7 @@ import {
 import { saveRouteRide } from '../services/dataManager';
 import { createRideRecorder } from '../services/rideRecorder';
 import { computeRideMetrics } from '../services/rideMetrics';
+import { buildRouteProfile, gradeAt, elevationAt, elevationGain } from '../services/routeProfile';
 import '../styles/route.css';
 
 function readFtp() {
@@ -368,20 +369,23 @@ export default function RoutePage() {
     } catch (_) {}
   }, [routePoints, routeName, routeId]);
 
+  // Smoothed elevation profile: grade and climbing come from this rather than
+  // from raw point-to-point GPX elevation, which is too noisy
+  const routeProfile = useMemo(() => buildRouteProfile(routePoints), [routePoints]);
+  const routeProfileRef = useRef(routeProfile);
+  useEffect(() => { routeProfileRef.current = routeProfile; }, [routeProfile]);
+
   const routeStats = useMemo(() => {
     if (routePoints.length === 0) return null;
     const totalDistance = routePoints[routePoints.length - 1].distanceFromStart;
-    let elevationGain = 0;
     let minEle = routePoints[0].ele;
     let maxEle = routePoints[0].ele;
     for (let i = 1; i < routePoints.length; i++) {
-      const diff = routePoints[i].ele - routePoints[i - 1].ele;
-      if (diff > 0) elevationGain += diff;
       if (routePoints[i].ele < minEle) minEle = routePoints[i].ele;
       if (routePoints[i].ele > maxEle) maxEle = routePoints[i].ele;
     }
-    return { totalDistance, elevationGain, minEle, maxEle };
-  }, [routePoints]);
+    return { totalDistance, elevationGain: elevationGain(routeProfile), minEle, maxEle };
+  }, [routePoints, routeProfile]);
 
   // ── Reset trainer grade on unmount ──────────────────────────────────────────
   useEffect(() => {
@@ -399,16 +403,9 @@ export default function RoutePage() {
     // Skip summary for trivial distances (< 100 m)
     if (distanceRiddenRef.current < 0.1) return;
 
-    const pts    = routePointsRef.current;
     const name   = routeNameRef.current;
     const rid    = routeIdRef.current;
-    const endIdx = Math.min(currentIndexRef.current, pts.length - 1);
-
-    let gainRidden = 0;
-    for (let i = 1; i <= endIdx; i++) {
-      const diff = pts[i].ele - pts[i - 1].ele;
-      if (diff > 0) gainRidden += diff;
-    }
+    const gainRidden = elevationGain(routeProfileRef.current, distanceRiddenRef.current);
 
     const recorder = recorderRef.current;
     recorder.stop();
@@ -561,15 +558,7 @@ export default function RoutePage() {
       }
       setCurrentIndex(idx);
 
-      let grade = 0;
-      if (idx < routePoints.length - 1) {
-        const curr = routePoints[idx];
-        const next = routePoints[idx + 1];
-        const segDist = (next.distanceFromStart - curr.distanceFromStart) * 1000;
-        if (segDist > 0) grade = ((next.ele - curr.ele) / segDist) * 100;
-      }
-
-      const gradeRounded = Math.round(grade * 10) / 10;
+      const gradeRounded = Math.round(gradeAt(routeProfile, distanceRidden) * 10) / 10;
       if (Math.abs(gradeRounded - lastGradeRef.current) >= 0.2) {
         lastGradeRef.current = gradeRounded;
         setGrade(gradeRounded).catch(() => {});
@@ -577,7 +566,7 @@ export default function RoutePage() {
 
       setLiveStats({
         distanceRidden,
-        ele:      routePoints[idx].ele,
+        ele:      elevationAt(routeProfile, distanceRidden),
         grade:    gradeRounded,
         duration: recorder.elapsedSeconds,
       });
@@ -586,7 +575,7 @@ export default function RoutePage() {
     }, 250);
 
     return () => clearInterval(interval);
-  }, [isRiding, isPaused, routePoints, routeStats, setGrade]);
+  }, [isRiding, isPaused, routePoints, routeProfile, routeStats, setGrade]);
 
   const handleStartRide = useCallback(() => {
     distanceRiddenRef.current       = 0;
@@ -624,10 +613,6 @@ export default function RoutePage() {
     setCurrentIndex(0);
     setLiveStats({ distanceRidden: 0, ele: routePointsRef.current[0]?.ele ?? 0, grade: 0, duration: 0 });
   }, []);
-
-  // Keep a ref to currentIndex so the summary effect can read it without being a dep
-  const currentIndexRef = useRef(0);
-  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
   const gradeClass = useMemo(() => {
     if (liveStats.grade > 5) return 'grade-hard';
