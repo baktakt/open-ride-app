@@ -7,11 +7,10 @@
     "ant-plus-next": "^0.4.0",
     "events": "^3.3.0",
     "leaflet": "^1.9.4",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
     "react-leaflet": "^5.0.0",
-    "react-router-dom": "^7.18.4",
-    "three": "^0.186.1"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",
