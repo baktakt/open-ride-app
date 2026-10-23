@@ -26,7 +26,7 @@ Open Ride is a privacy-first indoor cycling app. The browser talks to an ANT+ US
 - Do not introduce class components. All React components are functional.
 - Do not add Redux, Zustand, or other state libraries. State is managed via React Context and localStorage.
 - Do not add analytics, telemetry, or external API calls. Privacy is a core principle.
-- Do not create or modify `.env` files without asking. The backend `.env` only holds PORT and HOST.
+- Do not create or modify `.env` files without asking. The backend `.env` holds PORT and HOST, and optionally LM_USER / LM_PASS (a Geotorget login for Lantmäteriet's terrain model; never log or return them).
 - Do not run `npm run build` during iterative development -- use `npm run dev` for hot reload.
 
 ## Code style rules
@@ -117,7 +117,11 @@ cd frontend && npm run build
 
 - `three` is the only 3D dependency and is lazy-loaded (`React.lazy`) so it stays out of the main bundle.
 - The browser never calls map-data providers directly. Elevation tiles come from the backend proxy
-  `GET /api/terrain/:provider/:z/:x/:y.png`, which fetches and caches them under `backend/cache/` (gitignored).
+  `GET /api/terrain/:provider/:z/:x/:y.png`, which fetches or renders them and caches them under `backend/cache/` (gitignored).
+- `GET /api/terrain/providers` lists the available providers best first. `lantmateriet` (1 m, Sweden) is only offered when
+  LM_USER / LM_PASS are set; it is rendered from Lantmäteriet's Cloud-Optimized GeoTIFFs (`backend/src/lantmateriet/`) and
+  falls back per pixel, and on any error, to `terrarium` (AWS Terrain Tiles, global). Lantmäteriet answers 403 when hit
+  too hard: keep requests to it at two at a time.
 
 ## localStorage keys
 

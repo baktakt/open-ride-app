@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   lngLatToTile, tileRange, tileCount, chooseZoom, decodeTerrarium, createLocalProjection,
-  routeBounds, sampleTiles, buildHeightField, heightAt, TILE_SIZE,
+  routeBounds, sampleTiles, buildHeightField, heightAt, maxZoomFor, TILE_SIZE,
 } from '../src/services/terrain.js';
 
 // Lerum, Sweden
@@ -77,4 +77,24 @@ test('heightAt interpolates between grid samples', () => {
   assert.equal(heightAt(field, 0, 5), 10);
   assert.equal(heightAt(field, 5, 5), 15);
   assert.equal(heightAt(field, 100, 100), 30); // clamped
+});
+
+test('zoom cap follows the provider', () => {
+  assert.equal(maxZoomFor({ id: 'terrarium', maxZoom: 14 }), 13);      // ~30 m source data
+  assert.equal(maxZoomFor({ id: 'lantmateriet', maxZoom: 14 }), 14);   // 1 m source data
+  assert.equal(maxZoomFor({ id: 'lantmateriet', maxZoom: 12 }), 12);
+});
+
+test('grid cells average the tile pixels instead of point-sampling them', () => {
+  // A 1-pixel-wide ridge every 8 pixels: a point sample either hits it or not,
+  // the cell average sees its share
+  const bounds = routeBounds([{ lat: LAT, lng: LNG }, { lat: LAT + 0.05, lng: LNG + 0.08 }], 0);
+  const range = tileRange(bounds, 13);
+  const tiles = flatTiles(range, (_x, _y, i) => ((i % TILE_SIZE) % 8 === 0 ? 80 : 0));
+  const proj = createLocalProjection(LAT, LNG);
+  const field = buildHeightField({ tiles, z: 13, bounds, projection: proj, maxSamples: 120 });
+  const values = Array.from(field.heights);
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  assert.ok(Math.abs(mean - 10) < 2.5, `mean ${mean}`);       // 80 m on 1 pixel in 8
+  assert.ok(Math.max(...values) < 40, 'no cell is just the ridge');
 });

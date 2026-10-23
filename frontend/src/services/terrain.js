@@ -2,7 +2,10 @@
  * Terrain for the 3D route view.
  *
  * Elevation tiles come from the Open Ride backend (/api/terrain/...), which
- * proxies and caches them — the browser never contacts a map-data provider.
+ * proxies, renders and caches them — the browser never contacts a map-data
+ * provider. The backend lists its providers best first: Lantmäteriet's 1 m
+ * model for Sweden when configured (with a global fallback outside Sweden),
+ * otherwise AWS Terrain Tiles everywhere.
  * Tiles are 256×256 "terrarium" PNGs on the Web Mercator z/x/y grid:
  *   elevation (m) = R·256 + G + B/256 − 32768
  *
@@ -13,11 +16,15 @@
  */
 
 export const TILE_SIZE = 256;
-export const TERRAIN_PROVIDER = 'terrarium';
-export const MAX_TERRAIN_ZOOM = 13;     // ~10 m per pixel at Swedish latitudes
+export const DEFAULT_PROVIDER = { id: 'terrarium', maxZoom: 14, attribution: 'Terrain Tiles (Mapzen, AWS Open Data)' };
+// AWS Terrain Tiles hold ~30 m data in Sweden, so z13 (~10 m pixels) is enough;
+// finer sources (Lantmäteriet's 1 m model) are worth z14 (~5 m pixels)
+export const MAX_TERRAIN_ZOOM = 13;
+export const MAX_FINE_TERRAIN_ZOOM = 14;
 export const MAX_TERRAIN_TILES = 64;
 export const TERRAIN_MARGIN_M = 1500;   // terrain around the route's bounding box
 export const MAX_GRID_SAMPLES = 400;    // per side of the height field
+const MAX_SUBSAMPLES = 3;               // per axis, when averaging tile pixels into a grid cell
 
 const EARTH_RADIUS = 6378137;
 const DEG = Math.PI / 180;
@@ -148,12 +155,29 @@ export function buildHeightField({ tiles, z, bounds, projection, fallbackHeight 
   const heights = new Float32Array(cols * rows);
   let missing = 0;
 
+  // When grid cells are larger than the tiles' pixels, average several samples
+  // per cell; a single point sample would catch or miss narrow features
+  // (embankments, ditches) depending on where it happens to land.
+  const pixelSize = (EARTH_RADIUS * 2 * Math.PI * Math.cos(projection.lat0 * DEG)) / (TILE_SIZE * 2 ** z);
+  const sub = Math.max(1, Math.min(MAX_SUBSAMPLES, Math.round(spacing / pixelSize)));
+  const offsets = Array.from({ length: sub }, (_, k) => ((k + 0.5) / sub - 0.5) * spacing);
+
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const { lat, lng } = projection.toLatLng(nw.x + c * spacing, nw.z + r * spacing);
-      const h = sampleTiles(tiles, z, lat, lng);
-      if (h === null || !Number.isFinite(h)) missing += 1;
-      heights[r * cols + c] = h === null || !Number.isFinite(h) ? fallbackHeight : h;
+      let sum = 0;
+      let n = 0;
+      for (const dz of offsets) {
+        for (const dx of offsets) {
+          const { lat, lng } = projection.toLatLng(nw.x + c * spacing + dx, nw.z + r * spacing + dz);
+          const h = sampleTiles(tiles, z, lat, lng);
+          if (h !== null && Number.isFinite(h)) {
+            sum += h;
+            n += 1;
+          }
+        }
+      }
+      if (n === 0) missing += 1;
+      heights[r * cols + c] = n > 0 ? sum / n : fallbackHeight;
     }
   }
 
@@ -175,8 +199,27 @@ export function heightAt(field, x, z) {
 
 // ─── Loading (browser) ───────────────────────────────────────────────────────
 
-async function fetchTileHeights(apiBase, z, x, y, signal) {
-  const response = await fetch(`${apiBase}/api/terrain/${TERRAIN_PROVIDER}/${z}/${x}/${y}.png`, { signal });
+/** The backend's best terrain provider (listed best first), or the default. */
+async function fetchBestProvider(apiBase, signal) {
+  try {
+    const response = await fetch(`${apiBase}/api/terrain/providers`, { signal });
+    if (!response.ok) return DEFAULT_PROVIDER;
+    const { providers } = await response.json();
+    return providers?.[0] ?? DEFAULT_PROVIDER;
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    return DEFAULT_PROVIDER;
+  }
+}
+
+/** Zoom cap for a provider: its own maximum, and no finer than its data warrants. */
+export function maxZoomFor(provider) {
+  const cap = provider.id === DEFAULT_PROVIDER.id ? MAX_TERRAIN_ZOOM : MAX_FINE_TERRAIN_ZOOM;
+  return Math.min(cap, provider.maxZoom ?? cap);
+}
+
+async function fetchTileHeights(apiBase, providerId, z, x, y, signal) {
+  const response = await fetch(`${apiBase}/api/terrain/${providerId}/${z}/${x}/${y}.png`, { signal });
   if (!response.ok) return null;
   const bitmap = await createImageBitmap(await response.blob());
   const canvas = new OffscreenCanvas(TILE_SIZE, TILE_SIZE);
@@ -189,19 +232,20 @@ async function fetchTileHeights(apiBase, z, x, y, signal) {
 /**
  * Load terrain for a route from the backend.
  * @param {Array<{ lat, lng, ele }>} points  route points
- * @returns {Promise<{ field, projection, bounds, zoom, tilesLoaded, tilesTotal }>}
+ * @returns {Promise<{ field, projection, bounds, zoom, provider, tilesLoaded, tilesTotal }>}
  */
 export async function loadTerrain(points, { apiBase = '', signal } = {}) {
+  const provider = await fetchBestProvider(apiBase, signal);
   const bounds = routeBounds(points);
   const projection = createLocalProjection((bounds.minLat + bounds.maxLat) / 2, (bounds.minLng + bounds.maxLng) / 2);
-  const zoom = chooseZoom(bounds);
+  const zoom = chooseZoom(bounds, { maxZoom: maxZoomFor(provider) });
   const range = tileRange(bounds, zoom);
 
   const requests = [];
   for (let x = range.minX; x <= range.maxX; x++) {
     for (let y = range.minY; y <= range.maxY; y++) {
       requests.push(
-        fetchTileHeights(apiBase, zoom, x, y, signal)
+        fetchTileHeights(apiBase, provider.id, zoom, x, y, signal)
           .then(heights => [`${x}/${y}`, heights])
           .catch(err => {
             if (err.name === 'AbortError') throw err;
@@ -217,5 +261,5 @@ export async function loadTerrain(points, { apiBase = '', signal } = {}) {
   const fallbackHeight = elevations.length ? elevations.reduce((a, b) => a + b, 0) / elevations.length : 0;
   const field = buildHeightField({ tiles, z: zoom, bounds, projection, fallbackHeight });
 
-  return { field, projection, bounds, zoom, tilesLoaded: tiles.size, tilesTotal: requests.length };
+  return { field, projection, bounds, zoom, provider, tilesLoaded: tiles.size, tilesTotal: requests.length };
 }

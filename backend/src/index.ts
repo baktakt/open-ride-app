@@ -20,7 +20,7 @@ import {
   searchWorkouts,
   Workout
 } from './workoutParser.js';
-import { createTerrainTileService, listProviders } from './terrainTiles.js';
+import { createTerrainTileService } from './terrainTiles.js';
 
 // Get directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -138,11 +138,18 @@ app.post('/api/workouts/reload', (_req, res) => {
 // Elevation tiles for the 3D route view, proxied and cached so the browser
 // never contacts map-data providers directly.
 
-const terrainTiles = createTerrainTileService(path.join(__dirname, '../cache/terrain'));
+// Optional: Lantmäteriet's 1 m terrain model for Sweden, with a Geotorget account that has
+// "Markhöjdmodell Nedladdning" ordered (LM_USER / LM_PASS). Without it, AWS Terrain Tiles everywhere.
+const terrainTiles = createTerrainTileService(path.join(__dirname, '../cache/terrain'), {
+  lantmateriet: process.env.LM_USER && process.env.LM_PASS
+    ? { user: process.env.LM_USER, pass: process.env.LM_PASS }
+    : null,
+});
+console.log(`Terrain providers: ${terrainTiles.listProviders().map(p => p.id).join(', ')}`);
 const TILE_COORD = /^\d{1,7}$/;
 
 app.get('/api/terrain/providers', (_req, res) => {
-  res.json({ providers: listProviders() });
+  res.json({ providers: terrainTiles.listProviders() });
 });
 
 app.get('/api/terrain/:provider/:z/:x/:y.png', async (req, res) => {
@@ -158,6 +165,7 @@ app.get('/api/terrain/:provider/:z/:x/:y.png', async (req, res) => {
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
       res.setHeader('X-Terrain-Cache', result.cached ? 'hit' : 'miss');
+      res.setHeader('X-Terrain-Source', result.source);
       res.send(result.body);
       return;
     case 'invalid':

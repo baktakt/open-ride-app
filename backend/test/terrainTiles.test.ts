@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import { createTerrainTileService, validateTile, listProviders } from '../src/terrainTiles.js';
+import { createTerrainTileService, validateTile } from '../src/terrainTiles.js';
 
 const terrarium = { id: 'terrarium', name: 't', maxZoom: 14, attribution: '', tileUrl: () => '' };
 
@@ -16,10 +16,14 @@ test('tile coordinates are validated', () => {
   assert.match(validateTile(undefined, 1, 0, 0) ?? '', /Unknown/);
 });
 
-test('providers are listed without their upstream URLs', () => {
-  const providers = listProviders();
-  assert.ok(providers.some(p => p.id === 'terrarium'));
-  assert.ok(providers.every(p => !('tileUrl' in p)));
+test('providers are listed without upstream URLs or credentials', () => {
+  const plain = createTerrainTileService(os.tmpdir()).listProviders();
+  assert.deepEqual(plain.map(p => p.id), ['terrarium']);
+  assert.ok(plain.every(p => !('tileUrl' in p)));
+
+  const withLm = createTerrainTileService(os.tmpdir(), { lantmateriet: { user: 'u', pass: 'secret' } }).listProviders();
+  assert.deepEqual(withLm.map(p => p.id), ['lantmateriet', 'terrarium']); // best first
+  assert.ok(!JSON.stringify(withLm).includes('secret'));
 });
 
 test('cached tiles are served from disk without contacting the provider', async () => {

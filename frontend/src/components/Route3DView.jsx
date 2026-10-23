@@ -213,7 +213,12 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
       });
       resizeObserver.observe(container);
 
-      setStatus({ state: 'ready', tilesLoaded: terrain.tilesLoaded, tilesTotal: terrain.tilesTotal });
+      setStatus({
+        state: 'ready',
+        tilesLoaded: terrain.tilesLoaded,
+        tilesTotal: terrain.tilesTotal,
+        attribution: terrain.provider.attribution,
+      });
 
       // Follow the rider
       let shownM = (distanceKmRef.current || 0) * 1000;
@@ -282,7 +287,7 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
           Some terrain could not be loaded ({status.tilesLoaded}/{status.tilesTotal} tiles) and is shown flat.
         </div>
       )}
-      <div className="route-3d-attribution">Elevation: Terrain Tiles (Mapzen, AWS Open Data)</div>
+      {status.attribution && <div className="route-3d-attribution">Elevation: {status.attribution}</div>}
     </div>
   );
 }
