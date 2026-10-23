@@ -1,4 +1,4 @@
-import React, { Component, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { Component, Suspense, lazy, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import L from 'leaflet';
 import { useAnt } from '../contexts/AntContext';
@@ -18,6 +18,9 @@ import { buildRouteProfile, gradeAt, elevationAt, elevationGain, positionAt } fr
 import { saveRideFile } from '../services/rideFiles';
 import { downloadRide } from '../services/rideExport';
 import '../styles/route.css';
+
+// three.js is only downloaded when the 3D view is opened
+const Route3DView = lazy(() => import('../components/Route3DView'));
 
 function readFtp() {
   try {
@@ -315,6 +318,9 @@ export default function RoutePage() {
   const [currentIndex,  setCurrentIndex]  = useState(0);
   const [liveStats,     setLiveStats]     = useState({ distanceRidden: 0, ele: 0, grade: 0, duration: 0 });
 
+  // Map panel: 2D map or 3D first-person view
+  const [viewMode, setViewMode] = useState('map'); // 'map' | '3d'
+
   // Completion summary
   const [showSummary,   setShowSummary]   = useState(false);
   const [summaryStats,  setSummaryStats]  = useState(null);
@@ -465,6 +471,7 @@ export default function RoutePage() {
     setParseError(null);
     setIsRiding(false);
     setCurrentIndex(0);
+    distanceRiddenRef.current = 0;
     setLiveStats({ distanceRidden: 0, ele: 0, grade: 0, duration: 0 });
     setSavedToLib(false);
 
@@ -512,6 +519,7 @@ export default function RoutePage() {
     setSavedToLib(true);
     setIsRiding(false);
     setCurrentIndex(0);
+    distanceRiddenRef.current = 0;
     setLiveStats({ distanceRidden: 0, ele: 0, grade: 0, duration: 0 });
     setParseError(null);
     setShowLibrary(false);
@@ -885,9 +893,42 @@ export default function RoutePage() {
                   <p>Upload a GPX file to see your route</p>
                 </div>
               ) : (
-                <RouteErrorBoundary>
-                  <RouteMap routePoints={routePoints} currentIndex={currentIndex} isRiding={isRiding} />
-                </RouteErrorBoundary>
+                <>
+                  <div className="map-view-toggle" role="tablist" aria-label="Route view">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={viewMode === 'map'}
+                      className={viewMode === 'map' ? 'active' : ''}
+                      onClick={() => setViewMode('map')}
+                    >
+                      Map
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={viewMode === '3d'}
+                      className={viewMode === '3d' ? 'active' : ''}
+                      onClick={() => setViewMode('3d')}
+                    >
+                      3D
+                    </button>
+                  </div>
+                  <RouteErrorBoundary>
+                    {viewMode === 'map' ? (
+                      <RouteMap routePoints={routePoints} currentIndex={currentIndex} isRiding={isRiding} />
+                    ) : (
+                      <Suspense fallback={<div className="route-3d-status">Loading 3D view…</div>}>
+                        <Route3DView
+                          routePoints={routePoints}
+                          distanceKmRef={distanceRiddenRef}
+                          telemetryRef={telemetryRef}
+                          isRiding={isRiding}
+                        />
+                      </Suspense>
+                    )}
+                  </RouteErrorBoundary>
+                </>
               )}
             </div>
 

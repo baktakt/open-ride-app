@@ -30,3 +30,6 @@ npm-debug.log*
 
 # Package lock (optional - some prefer to commit this)
 # package-lock.json
+
+# Terrain tile cache (backend/src/terrainTiles.ts)
+cache/
