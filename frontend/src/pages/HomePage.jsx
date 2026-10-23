@@ -11,6 +11,8 @@ import {
   loadRouteHistory,
   ROUTE_HISTORY_KEY,
 } from '../services/dataManager';
+import { listRideFileIds, loadRideFile, deleteRideFiles } from '../services/rideFiles';
+import { downloadRide } from '../services/rideExport';
 import '../styles/index.css';
 
 export default function HomePage() {
@@ -25,6 +27,8 @@ export default function HomePage() {
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
   const [rideHistory, setRideHistory] = useState([]);
   const [routeHistory, setRouteHistory] = useState([]);
+  // Ids of history entries that have a stored per-second recording
+  const [rideFileIds, setRideFileIds] = useState(() => new Set());
   const [deletingId, setDeletingId] = useState(null);
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
@@ -38,7 +42,26 @@ export default function HomePage() {
     fetchWorkouts();
     loadHistory();
     setRouteHistory(loadRouteHistory());
+    listRideFileIds().then(setRideFileIds).catch(() => {});
   }, []);
+
+  const exportRide = useCallback(async (id, format) => {
+    try {
+      const ride = await loadRideFile(id);
+      if (ride) downloadRide(ride, format);
+    } catch (err) {
+      console.error('Failed to export ride:', err);
+    }
+  }, []);
+
+  const renderExportButtons = (id) => (
+    rideFileIds.has(id) && (
+      <div className="history-export" aria-label="Export ride">
+        <button className="history-export-btn" onClick={() => exportRide(id, 'fit')} title="Download FIT file">FIT</button>
+        <button className="history-export-btn" onClick={() => exportRide(id, 'tcx')} title="Download TCX file">TCX</button>
+      </div>
+    )
+  );
 
   const loadHistory = () => {
     try {
@@ -49,12 +72,14 @@ export default function HomePage() {
 
   const clearHistory = () => {
     if (!window.confirm('Clear all ride history?')) return;
+    deleteRideFiles(rideHistory.map(ride => ride.id)).catch(() => {});
     localStorage.removeItem('openride_workout_history');
     setRideHistory([]);
   };
 
   const clearRouteHistory = () => {
     if (!window.confirm('Clear all route ride history?')) return;
+    deleteRideFiles(routeHistory.map(ride => ride.id)).catch(() => {});
     localStorage.removeItem(ROUTE_HISTORY_KEY);
     setRouteHistory([]);
   };
@@ -462,6 +487,7 @@ export default function HomePage() {
                     <div className="history-item-left">
                       <div className="history-name">{ride.workoutName}</div>
                       <div className="history-date">{formatHistoryDate(ride.date)}</div>
+                      {renderExportButtons(ride.id)}
                     </div>
                     <div className="history-stats">
                       <div className="history-stat">
@@ -508,6 +534,7 @@ export default function HomePage() {
                     <div className="history-item-left">
                       <div className="history-name">{ride.routeName || 'Route ride'}</div>
                       <div className="history-date">{formatHistoryDate(ride.date)}</div>
+                      {renderExportButtons(ride.id)}
                     </div>
                     <div className="history-stats">
                       <div className="history-stat">

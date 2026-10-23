@@ -14,7 +14,9 @@ import {
 import { saveRouteRide } from '../services/dataManager';
 import { createRideRecorder } from '../services/rideRecorder';
 import { computeRideMetrics } from '../services/rideMetrics';
-import { buildRouteProfile, gradeAt, elevationAt, elevationGain } from '../services/routeProfile';
+import { buildRouteProfile, gradeAt, elevationAt, elevationGain, positionAt } from '../services/routeProfile';
+import { saveRideFile } from '../services/rideFiles';
+import { downloadRide } from '../services/rideExport';
 import '../styles/route.css';
 
 function readFtp() {
@@ -316,6 +318,8 @@ export default function RoutePage() {
   // Completion summary
   const [showSummary,   setShowSummary]   = useState(false);
   const [summaryStats,  setSummaryStats]  = useState(null);
+  // Full recording of the finished ride, for FIT / TCX export
+  const [completedRide, setCompletedRide] = useState(null);
 
   // Refs for interval
   const telemetryRef       = useRef(telemetry);
@@ -424,13 +428,29 @@ export default function RoutePage() {
       tss:             metrics.tss,
     };
 
+    // The history entry and the stored recording share an id so the ride can
+    // be exported from the home page later
+    const rideId = Date.now();
+    const ride = {
+      id:        rideId,
+      type:      'route',
+      name:      name || 'Route ride',
+      startTime: new Date(recorder.startedAt).toISOString(),
+      ftp:       readFtp(),
+      samples:   recorder.samples,
+      summary:   stats,
+    };
+
     saveRouteRide({
+      id:        rideId,
       routeId:   rid,
       routeName: name,
       date:      new Date().toISOString(),
       ...stats,
     });
+    saveRideFile(ride).catch(err => console.error('Failed to store ride recording:', err));
 
+    setCompletedRide(ride);
     setSummaryStats(stats);
     setShowSummary(true);
   }, [isRiding]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -540,7 +560,21 @@ export default function RoutePage() {
       if (added === 0) return;
 
       // speed is km/h → km per second × seconds elapsed
-      distanceRiddenRef.current += (telemetryRef.current.speed / 3600) * added;
+      const previousDistance = distanceRiddenRef.current;
+      const stepKm = telemetryRef.current.speed / 3600;
+      distanceRiddenRef.current += stepKm * added;
+
+      // Place each new second on the route, for map-based exports
+      const samples = recorder.samples;
+      for (let k = 0; k < added; k++) {
+        const sample = samples[samples.length - added + k];
+        const d = Math.min(previousDistance + stepKm * (k + 1), routeStats.totalDistance);
+        const position = positionAt(routePoints, d);
+        sample.routeDistance = d * 1000;
+        sample.lat = position.lat;
+        sample.lng = position.lng;
+        sample.altitude = elevationAt(routeProfile, d);
+      }
 
       const distanceRidden = distanceRiddenRef.current;
 
@@ -608,6 +642,7 @@ export default function RoutePage() {
   const handleRideAgain = useCallback(() => {
     setShowSummary(false);
     setSummaryStats(null);
+    setCompletedRide(null);
     distanceRiddenRef.current       = 0;
     lastGradeRef.current            = -999;
     setCurrentIndex(0);
@@ -921,6 +956,14 @@ export default function RoutePage() {
                 </div>
               )}
             </div>
+
+            {completedRide && (
+              <div className="route-complete-export">
+                <span className="route-complete-export-label">Export ride</span>
+                <button className="route-complete-btn secondary" onClick={() => downloadRide(completedRide, 'fit')}>.FIT</button>
+                <button className="route-complete-btn secondary" onClick={() => downloadRide(completedRide, 'tcx')}>.TCX</button>
+              </div>
+            )}
 
             <div className="route-complete-actions">
               <button className="route-complete-btn secondary" onClick={() => navigate('/')}>

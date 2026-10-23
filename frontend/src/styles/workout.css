@@ -681,6 +681,23 @@ body.workout-page {
   justify-content: center;
 }
 
+.complete-export {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.complete-export-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.complete-export .complete-btn {
+  padding: 0.5rem 1rem;
+}
+
 .complete-btn {
   padding: 1rem 2rem;
   border-radius: 8px;

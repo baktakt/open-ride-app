@@ -9,45 +9,7 @@
  */
 
 import { getActiveUserId } from './userManager';
-
-const DB_NAME    = 'openride';
-const STORE_NAME = 'routes';
-const DB_VERSION = 2;
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-      }
-
-      // v1 → v2: stamp existing routes with the current active user so they
-      // continue to show up for the initial user after the upgrade.
-      if (e.oldVersion < 2) {
-        const userId = getActiveUserId();
-        if (userId) {
-          const tx    = e.target.transaction;
-          const store = tx.objectStore(STORE_NAME);
-          const getAllReq = store.getAll();
-          getAllReq.onsuccess = () => {
-            for (const route of getAllReq.result || []) {
-              if (!route.userId) {
-                route.userId = userId;
-                store.put(route);
-              }
-            }
-          };
-        }
-      }
-    };
-
-    req.onsuccess = (e) => resolve(e.target.result);
-    req.onerror   = (e) => reject(e.target.error);
-  });
-}
+import { openDB, ROUTES_STORE as STORE_NAME } from './db';
 
 /**
  * Save (or overwrite) a route in the library.

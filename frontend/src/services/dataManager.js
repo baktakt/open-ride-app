@@ -147,10 +147,11 @@ export function loadRouteHistory() {
 
 /**
  * Append a completed route ride to history (capped at MAX_ROUTE_HISTORY).
+ * Pass entry.id to link the entry to a stored ride recording.
  */
 export function saveRouteRide(entry) {
   const history = loadRouteHistory();
-  history.unshift({ ...entry, id: Date.now() });
+  history.unshift({ ...entry, id: entry.id ?? Date.now() });
   if (history.length > MAX_ROUTE_HISTORY) history.length = MAX_ROUTE_HISTORY;
   try {
     localStorage.setItem(ROUTE_HISTORY_KEY, JSON.stringify(history));
