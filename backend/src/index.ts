@@ -20,6 +20,7 @@ import {
   searchWorkouts,
   Workout
 } from './workoutParser.js';
+import { createTerrainTileService, listProviders } from './terrainTiles.js';
 
 // Get directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -133,6 +134,45 @@ app.post('/api/workouts/reload', (_req, res) => {
   });
 });
 
+// ===== TERRAIN API =====
+// Elevation tiles for the 3D route view, proxied and cached so the browser
+// never contacts map-data providers directly.
+
+const terrainTiles = createTerrainTileService(path.join(__dirname, '../cache/terrain'));
+const TILE_COORD = /^\d{1,7}$/;
+
+app.get('/api/terrain/providers', (_req, res) => {
+  res.json({ providers: listProviders() });
+});
+
+app.get('/api/terrain/:provider/:z/:x/:y.png', async (req, res) => {
+  const { provider, z, x, y } = req.params;
+  if (![z, x, y].every(v => TILE_COORD.test(v))) {
+    res.status(400).json({ error: 'Invalid tile coordinates' });
+    return;
+  }
+
+  const result = await terrainTiles.getTile(provider, Number(z), Number(x), Number(y));
+  switch (result.status) {
+    case 'ok':
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+      res.setHeader('X-Terrain-Cache', result.cached ? 'hit' : 'miss');
+      res.send(result.body);
+      return;
+    case 'invalid':
+      res.status(400).json({ error: result.message });
+      return;
+    case 'not_found':
+      res.status(404).json({ error: 'Tile not available' });
+      return;
+    case 'upstream_error':
+      console.warn(`Terrain upstream error for ${provider}/${z}/${x}/${y}: ${result.message}`);
+      res.status(502).json({ error: 'Terrain provider unavailable' });
+      return;
+  }
+});
+
 // Graceful shutdown
 async function shutdown(): Promise<void> {
   console.log('\nShutting down...');
@@ -155,6 +195,8 @@ async function main(): Promise<void> {
     console.log(`  GET  /api/workouts/:id - Get workout details`);
     console.log(`  GET  /api/workouts/categories - List categories`);
     console.log(`  POST /api/workouts/reload - Reload workouts from disk`);
+    console.log(`  GET  /api/terrain/providers - Terrain tile providers`);
+    console.log(`  GET  /api/terrain/:provider/:z/:x/:y.png - Elevation tile (cached proxy)`);
     console.log();
     console.log('Frontend:');
     console.log('  Run `cd frontend && npm run dev` to start Vite dev server');
