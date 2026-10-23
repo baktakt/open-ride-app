@@ -308,6 +308,24 @@ Progress along the route is tracked using your reported speed (from the trainer)
 
 **Storage:** Saved routes live in the browser's IndexedDB under the `openride` database, `routes` store. They are scoped per user profile. Route ride history (completed ride summaries) is stored in localStorage under `openride_route_history`.
 
+### 3D view
+
+Switch the route map to **3D** to ride the route in first person over the real terrain. Elevation comes from the backend (`/api/terrain/...`), which fetches, renders and caches it, so the browser never contacts a map-data provider.
+
+| Where | Elevation source | Setup |
+|---|---|---|
+| Everywhere | [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen; ~30 m in Sweden) | none |
+| Sweden | Lantmäteriet **Markhöjdmodell**, 1 m, CC BY 4.0 — used automatically when configured; areas it doesn't cover fall back to AWS Terrain Tiles per pixel | free [Geotorget](https://geotorget.lantmateriet.se) account with the product **Markhöjdmodell Nedladdning** ordered |
+
+To enable Lantmäteriet's model, give the backend your Geotorget login (environment variables, or `backend/.env`):
+
+```bash
+LM_USER=your-geotorget-user
+LM_PASS=your-geotorget-password
+```
+
+The credentials stay on the backend. Only the parts of the 10 × 10 km files that a tile needs are downloaded (HTTP range requests, using the files' lower-resolution overviews for distant terrain when available), at most two requests at a time, and everything is cached under `backend/cache/`. If Lantmäteriet refuses or is unavailable, the 3D view falls back to AWS Terrain Tiles.
+
 ---
 
 ## Troubleshooting
