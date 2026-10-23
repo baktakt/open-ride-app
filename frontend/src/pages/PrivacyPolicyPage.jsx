@@ -87,6 +87,13 @@ export default function PrivacyPolicyPage() {
             servers, analytics platforms, advertising networks, or content-delivery networks
             as part of normal operation.
           </p>
+          <p>
+            The 3D route view needs elevation data for the area around your route. Your browser
+            requests it from the Open Ride backend, which fetches it from the elevation provider
+            (currently the AWS Open Data &ldquo;Terrain Tiles&rdquo;) and caches it. The provider
+            only sees requests from the backend, never from your browser, and the request contains
+            map tile coordinates only &mdash; not your route, ride data or any identifier.
+          </p>
         </div>
 
         <div className="legal-section">

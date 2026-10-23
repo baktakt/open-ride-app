@@ -110,6 +110,14 @@ cd frontend && npm run build
 | Change navigation | `frontend/src/components/TopBar.jsx` |
 | Add a new workout | Create `.orw` file in `backend/workouts/` following XML format in README |
 | Change user settings | `frontend/src/pages/SettingsPage.jsx` (localStorage key: `openride_settings`) |
+| Change the 3D route view | `frontend/src/components/Route3DView.jsx` (three.js scene), `frontend/src/services/terrain.js`, `frontend/src/services/routeScene.js` |
+| Add a terrain data provider | `backend/src/terrainTiles.ts` (must serve 256×256 terrarium-encoded PNG tiles) |
+
+## 3D route view and terrain
+
+- `three` is the only 3D dependency and is lazy-loaded (`React.lazy`) so it stays out of the main bundle.
+- The browser never calls map-data providers directly. Elevation tiles come from the backend proxy
+  `GET /api/terrain/:provider/:z/:x/:y.png`, which fetches and caches them under `backend/cache/` (gitignored).
 
 ## localStorage keys
 
