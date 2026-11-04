@@ -65,6 +65,7 @@ export default function SettingsPage() {
   const [useEmulator, setUseEmulator] = useState(false);
   const [aiSettings, setAiSettings] = useState(() => loadAiSettings());
   const [showApiKey, setShowApiKey] = useState(false);
+  const [backupBusy, setBackupBusy] = useState(false);
   const [importStatus, setImportStatus] = useState(null); // null | 'success' | 'error'
   const [importMessage, setImportMessage] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -531,16 +532,22 @@ export default function SettingsPage() {
               <div className="settings-card">
                 <div className="data-mgmt-row">
                   <div className="setting-info">
-                    <p className="setting-label-text">Export My Data</p>
+                    <p className="setting-label-text">Export All Riders</p>
                     <p className="setting-description">
-                      Download all your settings, ride history, training program, and custom workouts
-                      as a JSON file. Use it to back up your data or move to another device.
+                      Download every rider profile, settings, ride history, training programs, custom workouts,
+                      saved GPX routes and detailed ride recordings in one backup.
                       <strong> Your API key is not included.</strong>
                     </p>
                   </div>
                   <button
                     className="btn-secondary data-mgmt-btn"
-                    onClick={() => downloadExport()}
+                    disabled={backupBusy}
+                    onClick={async () => {
+                      setBackupBusy(true);
+                      try { await downloadExport(); }
+                      catch (error) { setImportStatus('error'); setImportMessage(error.message); }
+                      finally { setBackupBusy(false); }
+                    }}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
@@ -553,7 +560,7 @@ export default function SettingsPage() {
                   <div className="setting-info">
                     <p className="setting-label-text">Import Data</p>
                     <p className="setting-description">
-                      Restore from a previously exported backup. Existing data will be overwritten.
+                      Full backups replace all riders and their saved data on this device. Older backups restore only the current rider’s data.
                       Your API key will not be restored — re-enter it after import.
                     </p>
                   </div>
@@ -564,6 +571,7 @@ export default function SettingsPage() {
                     Import
                     <input
                       type="file"
+                      disabled={backupBusy}
                       accept=".json,application/json"
                       style={{ display: 'none' }}
                       onChange={async (e) => {
@@ -571,6 +579,7 @@ export default function SettingsPage() {
                         if (!file) return;
                         e.target.value = '';
                         try {
+                          setBackupBusy(true);
                           const result = await importFromFile(file);
                           setImportStatus('success');
                           setImportMessage(
@@ -579,6 +588,8 @@ export default function SettingsPage() {
                         } catch (err) {
                           setImportStatus('error');
                           setImportMessage(err.message);
+                        } finally {
+                          setBackupBusy(false);
                         }
                       }}
                     />

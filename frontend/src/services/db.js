@@ -10,7 +10,7 @@
  *   rides  — per-second ride recordings  (rideFiles.js)
  */
 
-import { getActiveUserId } from './userManager';
+import { getActiveUserId } from './userManager.js';
 
 const DB_NAME    = 'openride';
 const DB_VERSION = 3;

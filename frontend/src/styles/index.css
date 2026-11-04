@@ -445,9 +445,7 @@ h1, h2, h3, h4 {
 .filter-categories-scroll {
   display: flex;
   gap: 0.5rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  flex-wrap: wrap;
   padding-bottom: 2px;
   flex: 1;
   min-width: 0;
@@ -1910,23 +1908,22 @@ h1, h2, h3, h4 {
 
 
 /* Route workouts share the library cards, with elevation instead of power. */
-.route-import-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.route-import-toolbar p {
-  margin: 0;
+.route-import-action {
+  margin-left: auto;
+  padding: 0.5rem 0.25rem;
+  align-self: center;
   color: var(--muted-50);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 
-.route-import-toolbar button {
-  cursor: pointer;
-  font: inherit;
+.route-import-action:hover,
+.route-import-action:focus-visible {
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 
 .route-workout-preview {
@@ -1949,26 +1946,32 @@ h1, h2, h3, h4 {
   height: 100%;
 }
 
-.route-rename-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px;
-  background: var(--card-bg);
-}
-
-.route-rename-form input {
-  flex: 1 1 100%;
-  min-width: 0;
-  padding: 8px;
-  color: var(--text-primary);
-  background: var(--overlay-lg);
+/* Native modal top layer keeps route actions above transformed workout cards. */
+.route-action-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 28px;
   border: 1px solid var(--card-border);
-  border-radius: 6px;
-  font: inherit;
+  border-radius: 18px;
+  background: var(--card-bg, #14283c);
+  color: var(--text-primary);
+  box-shadow: 0 24px 80px #0009;
 }
 
-.route-rename-form button {
-  padding: 6px 12px;
-  cursor: pointer;
-}
+.route-action-dialog::backdrop { background: #030b16b8; backdrop-filter: blur(5px); }
+.route-dialog-eyebrow { color: var(--primary-blue); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.route-action-dialog h2 { margin: 8px 0 12px; font-size: 1.6rem; }
+.route-action-dialog p { color: var(--muted-50); line-height: 1.6; overflow-wrap: anywhere; }
+.route-dialog-field { display: grid; gap: 8px; margin-top: 20px; font-size: 0.85rem; }
+.route-dialog-field input { width: 100%; box-sizing: border-box; padding: 12px; color: var(--text-primary); background: var(--overlay-lg); border: 1px solid var(--card-border); border-radius: 8px; font: inherit; }
+.route-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.route-dialog-actions button { border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 18px; font: inherit; font-size: 0.9rem; cursor: pointer; }
+.route-dialog-cancel { background: var(--overlay-lg); color: var(--text-primary); }
+.route-dialog-delete { background: #c93445; color: #fff; }
+.route-dialog-save { background: var(--primary-blue); color: #071421; }
+.route-dialog-actions button:disabled { opacity: 0.6; cursor: wait; }

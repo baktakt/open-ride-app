@@ -1,3 +1,5 @@
+import { buildFullBackup, restoreFullBackup } from './dataBackup.js';
+
 /**
  * Data Manager
  *
@@ -164,41 +166,15 @@ export function saveRouteRide(entry) {
  * Build a JSON export object of all user data.
  * The AI API key is always excluded.
  */
-export function buildExportPayload() {
-  const payload = {
-    version: EXPORT_VERSION,
-    exportedAt: new Date().toISOString(),
-    app: 'Open Ride',
-    data: {},
-  };
-
-  for (const key of ALL_KEYS) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw !== null) {
-        payload.data[key] = JSON.parse(raw);
-      }
-    } catch (_) {
-      // Skip unparseable entries
-    }
-  }
-
-  // Scrub API key — never include it in the export
-  if (payload.data['openride_ai_settings']) {
-    payload.data['openride_ai_settings'] = {
-      ...payload.data['openride_ai_settings'],
-      apiKey: '',
-    };
-  }
-
-  return payload;
+export async function buildExportPayload() {
+  return buildFullBackup();
 }
 
 /**
  * Trigger a browser download of the export JSON.
  */
-export function downloadExport() {
-  const payload = buildExportPayload();
+export async function downloadExport() {
+  const payload = await buildExportPayload();
   const json = JSON.stringify(payload, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -214,7 +190,9 @@ export function downloadExport() {
  * Import data from a parsed export payload.
  * Returns a summary { imported: string[], skipped: string[], warnings: string[] }
  */
-export function applyImport(payload) {
+export async function applyImport(payload) {
+  if (payload?.version === 2) return restoreFullBackup(payload);
+  if (payload?.version !== 1) throw new Error('Unsupported backup version.');
   const result = { imported: [], skipped: [], warnings: [] };
 
   if (!payload || typeof payload !== 'object') {
@@ -252,10 +230,10 @@ export function applyImport(payload) {
 export async function importFromFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const payload = JSON.parse(e.target.result);
-        const result = applyImport(payload);
+        const result = await applyImport(payload);
         resolve(result);
       } catch (err) {
         reject(new Error(`Failed to parse backup file: ${err.message}`));
