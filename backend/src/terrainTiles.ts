@@ -2,7 +2,7 @@
  * Terrain tile proxy.
  *
  * The browser never contacts map-data providers directly (privacy): it asks
- * this backend for elevation tiles, and the backend fetches or renders them
+ * this backend for elevation tiles, and the backend fetches them
  * and caches them on disk. Upstream providers only ever see the backend,
  * never the rider.
  *
@@ -10,18 +10,11 @@
  * "terrarium" format (elevation = R·256 + G + B/256 − 32768 metres) on the
  * standard Web Mercator z/x/y grid — so the frontend works with any of them.
  *
- * Providers:
- *   terrarium    — AWS Terrain Tiles, fetched as-is (global, no key)
- *   lantmateriet — Lantmäteriet's 1 m Markhöjdmodell, rendered here from its
- *                  Cloud-Optimized GeoTIFFs; only offered when Geotorget
- *                  credentials (LM_USER / LM_PASS) are configured. Areas it
- *                  does not cover are filled from terrarium.
+ * Uses public Mapzen/AWS Terrain Tiles. No account, API key or dataset setup.
  */
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { createLantmaterietRenderer } from './lantmateriet/provider.js';
-import { decodePngRgb, encodePngRgb, terrariumHeights, terrariumRgb } from './lantmateriet/png.js';
 
 interface ProviderInfo {
   id: string;
@@ -35,15 +28,7 @@ interface RemoteProvider extends ProviderInfo {
   tileUrl(z: number, x: number, y: number): string;
 }
 
-interface RenderedProvider extends ProviderInfo {
-  kind: 'rendered';
-  /** Heights for the tile (NaN where unknown), or null when not covered at all */
-  render(z: number, x: number, y: number): Promise<Float32Array | null>;
-  /** provider used to fill pixels this one cannot */
-  fallback: string;
-}
-
-export type TerrainProvider = RemoteProvider | RenderedProvider;
+export type TerrainProvider = RemoteProvider;
 
 const TERRARIUM: RemoteProvider = {
   kind: 'remote',
@@ -67,8 +52,6 @@ export type TileResult =
   | { status: 'upstream_error'; message: string };
 
 export interface TerrainServiceOptions {
-  /** Geotorget account with "Markhöjdmodell Nedladdning" ordered */
-  lantmateriet?: { user: string; pass: string } | null;
   fetchImpl?: typeof fetch;
 }
 
@@ -105,22 +88,8 @@ export function createTerrainTileService(cacheDir: string, options: TerrainServi
   const doFetch = options.fetchImpl ?? fetch;
   const providers: Record<string, TerrainProvider> = { terrarium: TERRARIUM };
 
-  if (options.lantmateriet?.user && options.lantmateriet.pass) {
-    const render = createLantmaterietRenderer({ ...options.lantmateriet, cacheDir, fetchImpl: options.fetchImpl });
-    providers.lantmateriet = {
-      kind: 'rendered',
-      id: 'lantmateriet',
-      name: 'Lantmäteriet Markhöjdmodell (1 m)',
-      maxZoom: 14,
-      attribution: 'Markhöjdmodell © Lantmäteriet (CC BY 4.0); outside Sweden: Terrain Tiles (Mapzen / AWS Open Data)',
-      render,
-      fallback: 'terrarium',
-    };
-  }
-
   // De-duplicate concurrent requests for the same tile
   const inFlight = new Map<string, Promise<TileResult>>();
-  let lastRenderError = 0;
 
   const cacheFile = (providerId: string, z: number, x: number, y: number): string => (
     path.join(cacheDir, providerId, String(z), String(x), `${y}.png`)
@@ -155,41 +124,6 @@ export function createTerrainTileService(cacheDir: string, options: TerrainServi
     });
   }
 
-  async function renderTile(provider: RenderedProvider, z: number, x: number, y: number): Promise<TileResult> {
-    let heights: Float32Array | null;
-    try {
-      heights = await provider.render(z, x, y);
-    } catch (err) {
-      // Keep the 3D view working (bad credentials, rate limiting, outage):
-      // serve the fallback tile without caching it under this provider
-      if (Date.now() - lastRenderError > 60_000) {
-        console.warn(`Terrain provider ${provider.id} failed, using ${provider.fallback}: ${(err as Error).message}`);
-        lastRenderError = Date.now();
-      }
-      return getTile(provider.fallback, z, x, y);
-    }
-
-    if (!heights) return getTile(provider.fallback, z, x, y);
-
-    if (heights.some(Number.isNaN)) {
-      const fallback = await getTile(provider.fallback, z, x, y);
-      if (fallback.status === 'ok') {
-        const filler = terrariumHeights(decodePngRgb(fallback.body).rgb);
-        for (let i = 0; i < heights.length; i++) {
-          if (Number.isNaN(heights[i])) heights[i] = filler[i];
-        }
-      } else {
-        for (let i = 0; i < heights.length; i++) {
-          if (Number.isNaN(heights[i])) heights[i] = 0;
-        }
-      }
-    }
-
-    const body = encodePngRgb(256, 256, terrariumRgb(heights));
-    await writeCache(cacheFile(provider.id, z, x, y), body);
-    return { status: 'ok', body, cached: false, source: provider.id };
-  }
-
   async function getTile(providerId: string, z: number, x: number, y: number): Promise<TileResult> {
     const provider = providers[providerId];
     const invalid = validateTile(provider, z, x, y);
@@ -201,7 +135,7 @@ export function createTerrainTileService(cacheDir: string, options: TerrainServi
     const key = `${provider.id}/${z}/${x}/${y}`;
     let pending = inFlight.get(key);
     if (!pending) {
-      pending = (provider.kind === 'remote' ? fetchRemote(provider, z, x, y) : renderTile(provider, z, x, y))
+      pending = fetchRemote(provider, z, x, y)
         .finally(() => inFlight.delete(key));
       inFlight.set(key, pending);
     }
@@ -213,7 +147,6 @@ export function createTerrainTileService(cacheDir: string, options: TerrainServi
     /** Providers available on this server, best first (no upstream URLs or credentials) */
     listProviders(): ProviderInfo[] {
       return Object.values(providers)
-        .sort((a, b) => (a.kind === 'rendered' ? -1 : 0) - (b.kind === 'rendered' ? -1 : 0))
         .map(({ id, name, maxZoom, attribution }) => ({ id, name, maxZoom, attribution }));
     },
   };
