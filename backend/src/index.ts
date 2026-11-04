@@ -141,13 +141,8 @@ app.post('/api/workouts/reload', (_req, res) => {
 // Elevation tiles for the 3D route view, proxied and cached so the browser
 // never contacts map-data providers directly.
 
-// Optional: Lantmäteriet's 1 m terrain model for Sweden, with a Geotorget account that has
-// "Markhöjdmodell Nedladdning" ordered (LM_USER / LM_PASS). Without it, AWS Terrain Tiles everywhere.
-const terrainTiles = createTerrainTileService(path.join(__dirname, '../cache/terrain'), {
-  lantmateriet: process.env.LM_USER && process.env.LM_PASS
-    ? { user: process.env.LM_USER, pass: process.env.LM_PASS }
-    : null,
-});
+// Public elevation tiles require no credentials or manual dataset downloads.
+const terrainTiles = createTerrainTileService(path.join(__dirname, '../cache/terrain'));
 console.log(`Terrain providers: ${terrainTiles.listProviders().map(p => p.id).join(', ')}`);
 const TILE_COORD = /^\d{1,7}$/;
 

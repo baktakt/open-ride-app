@@ -81,8 +81,7 @@ test('heightAt interpolates between grid samples', () => {
 
 test('zoom cap follows the provider', () => {
   assert.equal(maxZoomFor({ id: 'terrarium', maxZoom: 14 }), 13);      // ~30 m source data
-  assert.equal(maxZoomFor({ id: 'lantmateriet', maxZoom: 14 }), 14);   // 1 m source data
-  assert.equal(maxZoomFor({ id: 'lantmateriet', maxZoom: 12 }), 12);
+  assert.equal(maxZoomFor({ id: 'terrarium', maxZoom: 12 }), 12);
 });
 
 test('grid cells average the tile pixels instead of point-sampling them', () => {

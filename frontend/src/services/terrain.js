@@ -2,10 +2,9 @@
  * Terrain for the 3D route view.
  *
  * Elevation tiles come from the Open Ride backend (/api/terrain/...), which
- * proxies, renders and caches them — the browser never contacts a map-data
- * provider. The backend lists its providers best first: Lantmäteriet's 1 m
- * model for Sweden when configured (with a global fallback outside Sweden),
- * otherwise AWS Terrain Tiles everywhere.
+ * proxies and caches public Mapzen/AWS Terrain Tiles. No account, API key,
+ * or manual dataset download is required.
+ *
  * Tiles are 256×256 "terrarium" PNGs on the Web Mercator z/x/y grid:
  *   elevation (m) = R·256 + G + B/256 − 32768
  *
@@ -18,9 +17,7 @@
 export const TILE_SIZE = 256;
 export const DEFAULT_PROVIDER = { id: 'terrarium', maxZoom: 14, attribution: 'Terrain Tiles (Mapzen, AWS Open Data)' };
 // AWS Terrain Tiles hold ~30 m data in Sweden, so z13 (~10 m pixels) is enough;
-// finer sources (Lantmäteriet's 1 m model) are worth z14 (~5 m pixels)
 export const MAX_TERRAIN_ZOOM = 13;
-export const MAX_FINE_TERRAIN_ZOOM = 14;
 export const MAX_TERRAIN_TILES = 64;
 export const TERRAIN_MARGIN_M = 1500;   // terrain around the route's bounding box
 export const MAX_GRID_SAMPLES = 400;    // per side of the height field
@@ -214,7 +211,7 @@ async function fetchBestProvider(apiBase, signal) {
 
 /** Zoom cap for a provider: its own maximum, and no finer than its data warrants. */
 export function maxZoomFor(provider) {
-  const cap = provider.id === DEFAULT_PROVIDER.id ? MAX_TERRAIN_ZOOM : MAX_FINE_TERRAIN_ZOOM;
+  const cap = MAX_TERRAIN_ZOOM;
   return Math.min(cap, provider.maxZoom ?? cap);
 }
 
