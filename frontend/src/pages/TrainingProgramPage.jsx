@@ -300,11 +300,11 @@ export default function TrainingProgramPage() {
                 <p>Upload a GPX file and ride your favorite outdoor route indoors. Trainer resistance adjusts automatically to match the elevation.</p>
               </div>
             </div>
-            <Link to="/route" className="tp-route-card-btn">
+            <Link to="/?category=routes" className="tp-route-card-btn">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M8 5v14l11-7z"/>
               </svg>
-              Open Route Ride
+              Browse Route Workouts
             </Link>
           </section>
 
@@ -656,7 +656,7 @@ export default function TrainingProgramPage() {
                     <div className="tp-picker-empty">
                       <p>No saved routes found.</p>
                       <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
-                        Upload a GPX file on the <Link to="/route" style={{ color: 'var(--primary-blue)' }} onClick={() => setPickerDay(null)}>Route Ride</Link> page to save routes here.
+                        Upload a GPX file in the <Link to="/?category=routes" style={{ color: 'var(--primary-blue)' }} onClick={() => setPickerDay(null)}>workout list</Link> to save routes here.
                       </p>
                     </div>
                   )}

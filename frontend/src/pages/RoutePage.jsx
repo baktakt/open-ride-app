@@ -1,24 +1,19 @@
 import React, { Component, Suspense, lazy, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import L from 'leaflet';
 import { useAnt } from '../contexts/AntContext';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
 import RideGauges from '../components/RideGauges';
 import NearbyPhotos from '../components/NearbyPhotos';
-import {
-  saveRoute,
-  loadAllRoutes,
-  loadRoute,
-  deleteRoute,
-  renameRoute,
-} from '../services/routeLibrary';
+import { loadRoute } from '../services/routeLibrary';
 import { saveRouteRide } from '../services/dataManager';
 import { createRideRecorder } from '../services/rideRecorder';
 import { computeRideMetrics } from '../services/rideMetrics';
 import { buildRouteProfile, gradeAt, elevationAt, elevationGain, positionAt } from '../services/routeProfile';
 import { saveRideFile } from '../services/rideFiles';
 import { downloadRide } from '../services/rideExport';
+import { createRouteMotion } from '../services/routeMotion';
 import '../styles/route.css';
 
 // three.js is only downloaded when the 3D view is opened
@@ -57,54 +52,7 @@ class RouteErrorBoundary extends Component {
   }
 }
 
-// ── GPX helpers ───────────────────────────────────────────────────────────────
-
-function haversineDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function parseGPX(xmlText) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlText, 'text/xml');
-  if (doc.getElementsByTagName('parsererror').length > 0) {
-    throw new Error('Invalid XML in GPX file');
-  }
-
-  const trkpts = doc.getElementsByTagName('trkpt');
-  if (trkpts.length === 0) throw new Error('No track points found in GPX file');
-
-  const points = [];
-  let totalDistance = 0;
-  let prevLat = null;
-  let prevLon = null;
-
-  for (let i = 0; i < trkpts.length; i++) {
-    const pt = trkpts[i];
-    const lat = parseFloat(pt.getAttribute('lat'));
-    const lon = parseFloat(pt.getAttribute('lon'));
-    if (isNaN(lat) || isNaN(lon)) continue;
-
-    const eleEl = pt.getElementsByTagName('ele')[0];
-    const ele = eleEl ? parseFloat(eleEl.textContent) || 0 : 0;
-
-    if (prevLat !== null) {
-      totalDistance += haversineDistance(prevLat, prevLon, lat, lon);
-    }
-    points.push({ lat, lng: lon, ele, distanceFromStart: totalDistance });
-    prevLat = lat;
-    prevLon = lon;
-  }
-
-  if (points.length === 0) throw new Error('No valid coordinates in GPX file');
-  return points;
-}
+// ── Formatting ────────────────────────────────────────────────────────────────
 
 function formatDuration(seconds) {
   const h = Math.floor(seconds / 3600);
@@ -217,7 +165,7 @@ function ElevationCanvas({ routePoints, routeStats, currentIndex, isRiding }) {
 
 // ── Leaflet map ───────────────────────────────────────────────────────────────
 
-function RouteMap({ routePoints, currentIndex, isRiding }) {
+function RouteMap({ routePoints, distanceKm, distanceKmRef, telemetryRef, isFollowing }) {
   const containerRef = useRef(null);
   const mapRef       = useRef(null);
   const polylineRef  = useRef(null);
@@ -253,9 +201,11 @@ function RouteMap({ routePoints, currentIndex, isRiding }) {
     if (routePoints.length === 0) return;
 
     const latlngs = routePoints.map(p => [p.lat, p.lng]);
-    polylineRef.current = L.polyline(latlngs, {
-      color: '#00d4ff', weight: 3, opacity: 0.85,
-    }).addTo(map);
+    polylineRef.current = L.featureGroup([
+      L.polyline(latlngs, { color: '#17243b', weight: 9, opacity: 0.95 }),
+      L.polyline(latlngs, { color: '#fff', weight: 6, opacity: 1 }),
+      L.polyline(latlngs, { color: '#e63967', weight: 4, opacity: 1 }),
+    ]).addTo(map);
     map.fitBounds(polylineRef.current.getBounds(), { padding: [24, 24] });
   }, [routePoints]);
 
@@ -263,23 +213,56 @@ function RouteMap({ routePoints, currentIndex, isRiding }) {
     const map = mapRef.current;
     if (!map) return;
 
-    if (!isRiding || routePoints.length === 0) {
+    if (routePoints.length === 0) {
       if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
       return;
     }
 
-    const p = routePoints[currentIndex];
+    const p = positionAt(routePoints, distanceKm);
     if (!p) return;
     const latlng = [p.lat, p.lng];
 
     if (markerRef.current) {
-      markerRef.current.setLatLng(latlng);
+      if (!isFollowing) markerRef.current.setLatLng(latlng);
     } else {
-      markerRef.current = L.circleMarker(latlng, {
-        radius: 9, color: '#ff6b35', fillColor: '#ff6b35', fillOpacity: 1, weight: 2,
+      markerRef.current = L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'route-rider-marker',
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
+          html: '<svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="27" r="6"/><circle cx="30" cy="27" r="6"/><path d="m11 27 7-12 7 12H11l-4-15h-3m13 3h10l3 12M23 10h5"/></svg>',
+        }),
+        title: 'Rider position',
+        alt: 'Rider position',
+        zIndexOffset: 1000,
       }).addTo(map);
     }
-  }, [isRiding, currentIndex, routePoints]);
+  }, [distanceKm, routePoints, isFollowing]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !polylineRef.current) return undefined;
+    map.stop();
+    if (!isFollowing) {
+      map.fitBounds(polylineRef.current.getBounds(), { padding: [24, 24] });
+      return undefined;
+    }
+    const start = positionAt(routePoints, distanceKmRef.current);
+    map.setView([start.lat, start.lng], 16, { animate: false });
+    const motion = createRouteMotion(distanceKmRef.current * 1000);
+    let last = performance.now();
+    let frame;
+    const tick = now => {
+      const distance = motion(distanceKmRef.current * 1000, telemetryRef.current?.speed, true, now, (now - last) / 1000);
+      last = now;
+      const p = positionAt(routePoints, distance / 1000);
+      markerRef.current?.setLatLng([p.lat, p.lng]);
+      map.panTo([p.lat, p.lng], { animate: false });
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [isFollowing, routePoints, distanceKmRef, telemetryRef]);
 
   return (
     <div ref={containerRef} className="leaflet-map" style={{ width: '100%', height: '100%' }} />
@@ -306,20 +289,12 @@ export default function RoutePage() {
 
   const [showDeviceModal, setShowDeviceModal] = useState(false);
 
-  // Active route (loaded from file or library)
+  // Active route selected from the workout library
   const [routePoints, setRoutePoints] = useState(() => loadSavedRoute()?.points ?? []);
   const [routeName,   setRouteName]   = useState(() => loadSavedRoute()?.name   ?? '');
   const [routeId,     setRouteId]     = useState(() => loadSavedRoute()?.id     ?? null);
 
-  // Route library
-  const [library,       setLibrary]       = useState([]);
-  const [showLibrary,   setShowLibrary]   = useState(false);
-  const [renamingId,    setRenamingId]    = useState(null);
-  const [renameValue,   setRenameValue]   = useState('');
-  const [savedToLib,    setSavedToLib]    = useState(false);
-
-  // Parse error
-  const [parseError, setParseError] = useState(null);
+  const [routeError, setRouteError] = useState(null);
 
   // Ride state
   const [isRiding,      setIsRiding]      = useState(false);
@@ -343,7 +318,6 @@ export default function RoutePage() {
   const recorderRef        = useRef(null);
   if (!recorderRef.current) recorderRef.current = createRideRecorder();
 
-  const fileInputRef = useRef(null);
 
   // Refs for detecting ride end
   const prevIsRidingRef = useRef(false);
@@ -360,21 +334,17 @@ export default function RoutePage() {
   useEffect(() => { routeNameRef.current   = routeName;   }, [routeName]);
   useEffect(() => { routeIdRef.current     = routeId;     }, [routeId]);
 
-  // Load library on mount
-  useEffect(() => {
-    loadAllRoutes().then(setLibrary).catch(() => {});
-  }, []);
-
   // Load a specific route requested via ?routeId= (e.g. from Training Program)
   useEffect(() => {
     const requestedId = searchParams.get('routeId');
     if (!requestedId) return;
     loadRoute(requestedId).then(entry => {
-      if (!entry) return;
+      if (!entry) { setRouteError('This route is no longer available. Choose a route from the workout list.'); setRoutePoints([]); return; }
+      setRouteError(null);
       setRoutePoints(entry.points);
       setRouteName(entry.name);
       setRouteId(entry.id);
-    }).catch(() => {});
+    }).catch(() => { setRouteError('Could not load this route. Try again from the workout list.'); setRoutePoints([]); });
   }, [searchParams]);
 
   // Persist active route to localStorage
@@ -469,100 +439,6 @@ export default function RoutePage() {
     setSummaryStats(stats);
     setShowSummary(true);
   }, [isRiding]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── File upload ──────────────────────────────────────────────────────────────
-
-  const handleFileUpload = useCallback(e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (fileInputRef.current) fileInputRef.current.value = '';
-
-    setParseError(null);
-    setIsRiding(false);
-    setCurrentIndex(0);
-    distanceRiddenRef.current = 0;
-    setLiveStats({ distanceRidden: 0, ele: 0, grade: 0, duration: 0 });
-    setSavedToLib(false);
-
-    const reader = new FileReader();
-    reader.onload = evt => {
-      try {
-        const points = parseGPX(evt.target.result);
-        setRoutePoints(points);
-        setRouteName(file.name.replace(/\.gpx$/i, ''));
-        setRouteId(null); // not yet saved to library
-      } catch (err) {
-        setParseError(err.message);
-        setRoutePoints([]);
-      }
-    };
-    reader.onerror = () => setParseError('Could not read file');
-    reader.readAsText(file);
-  }, []);
-
-  // ── Library actions ──────────────────────────────────────────────────────────
-
-  const handleSaveToLibrary = useCallback(async () => {
-    if (routePoints.length === 0 || !routeStats) return;
-    try {
-      const entry = await saveRoute({
-        id:            routeId || undefined,
-        name:          routeName,
-        points:        routePoints,
-        totalDistance: routeStats.totalDistance,
-        elevationGain: routeStats.elevationGain,
-        minEle:        routeStats.minEle,
-        maxEle:        routeStats.maxEle,
-      });
-      setRouteId(entry.id);
-      setSavedToLib(true);
-      const updated = await loadAllRoutes();
-      setLibrary(updated);
-    } catch (_) {}
-  }, [routePoints, routeStats, routeName, routeId]);
-
-  const handleLoadFromLibrary = useCallback((entry) => {
-    setRoutePoints(entry.points);
-    setRouteName(entry.name);
-    setRouteId(entry.id);
-    setSavedToLib(true);
-    setIsRiding(false);
-    setCurrentIndex(0);
-    distanceRiddenRef.current = 0;
-    setLiveStats({ distanceRidden: 0, ele: 0, grade: 0, duration: 0 });
-    setParseError(null);
-    setShowLibrary(false);
-  }, []);
-
-  const handleDeleteFromLibrary = useCallback(async (id, e) => {
-    e.stopPropagation();
-    try {
-      await deleteRoute(id);
-      const updated = await loadAllRoutes();
-      setLibrary(updated);
-      if (routeId === id) {
-        setRouteId(null);
-        setSavedToLib(false);
-      }
-    } catch (_) {}
-  }, [routeId]);
-
-  const handleStartRename = useCallback((entry, e) => {
-    e.stopPropagation();
-    setRenamingId(entry.id);
-    setRenameValue(entry.name);
-  }, []);
-
-  const handleConfirmRename = useCallback(async (id) => {
-    if (!renameValue.trim()) { setRenamingId(null); return; }
-    try {
-      await renameRoute(id, renameValue.trim());
-      const updated = await loadAllRoutes();
-      setLibrary(updated);
-      if (routeId === id) setRouteName(renameValue.trim());
-    } catch (_) {}
-    setRenamingId(null);
-  }, [renameValue, routeId]);
 
   // ── Ride tracking ────────────────────────────────────────────────────────────
 
@@ -685,124 +561,14 @@ export default function RoutePage() {
           <aside className="route-sidebar">
             <h1 className="route-heading">Route Ride</h1>
 
-            {/* Upload + library toggle */}
-            <div className="route-upload-section">
-              <label className="gpx-upload-btn" htmlFor="gpx-file-input">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-                </svg>
-                {routePoints.length > 0 ? 'Replace GPX' : 'Upload GPX'}
-              </label>
-              <input
-                ref={fileInputRef}
-                id="gpx-file-input"
-                type="file"
-                accept=".gpx"
-                onChange={handleFileUpload}
-                className="gpx-file-input"
-              />
-              <button
-                type="button"
-                className={`btn-library-toggle ${showLibrary ? 'active' : ''}`}
-                onClick={() => setShowLibrary(v => !v)}
-                title="Saved routes"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V6h5.17l2 2H20v10z"/>
-                </svg>
-                {library.length > 0 && <span className="library-count">{library.length}</span>}
-              </button>
-            </div>
-
-            {/* Route library panel */}
-            {showLibrary && (
-              <div className="route-library">
-                <div className="route-library-header">Saved Routes</div>
-                {library.length === 0 ? (
-                  <p className="route-library-empty">No saved routes yet. Upload a GPX and save it to the library.</p>
-                ) : (
-                  <ul className="route-library-list">
-                    {library.map(entry => (
-                      <li
-                        key={entry.id}
-                        className={`route-library-item ${routeId === entry.id ? 'active' : ''}`}
-                        onClick={() => handleLoadFromLibrary(entry)}
-                      >
-                        {renamingId === entry.id ? (
-                          <input
-                            className="route-library-rename-input"
-                            value={renameValue}
-                            autoFocus
-                            onChange={e => setRenameValue(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter')  handleConfirmRename(entry.id);
-                              if (e.key === 'Escape') setRenamingId(null);
-                            }}
-                            onBlur={() => handleConfirmRename(entry.id)}
-                            onClick={e => e.stopPropagation()}
-                          />
-                        ) : (
-                          <>
-                            <span className="route-library-name">{entry.name}</span>
-                            <span className="route-library-meta">
-                              {entry.totalDistance?.toFixed(1)} km · +{Math.round(entry.elevationGain ?? 0)} m
-                            </span>
-                          </>
-                        )}
-                        <div className="route-library-actions">
-                          <button
-                            type="button"
-                            title="Rename"
-                            onClick={e => handleStartRename(entry, e)}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                            </svg>
-                          </button>
-                          <button
-                            type="button"
-                            title="Delete"
-                            className="btn-delete-route"
-                            onClick={e => handleDeleteFromLibrary(entry.id, e)}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                            </svg>
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {parseError && (
-              <p className="route-error" role="alert">{parseError}</p>
-            )}
-
-            {routePoints.length === 0 && !parseError && (
-              <div className="route-empty-hint">
-                <p>Upload a GPX file to display your route on the map. Trainer resistance will automatically adjust based on elevation changes.</p>
-              </div>
-            )}
+            <Link to="/?category=routes" className="route-workout-link">← Route workouts</Link>
+            {routeError && <p className="route-error" role="alert">{routeError}</p>}
+            {routePoints.length === 0 && <p className="route-empty-hint">Choose a route workout or upload a GPX from the workout list.</p>}
 
             {routeStats && (
               <>
                 <div className="route-name-row">
                   <span className="route-name">{routeName}</span>
-                  {!savedToLib ? (
-                    <button
-                      type="button"
-                      className="btn-save-to-lib"
-                      onClick={handleSaveToLibrary}
-                      title="Save to library"
-                    >
-                      Save
-                    </button>
-                  ) : (
-                    <span className="route-saved-badge">✓ Saved</span>
-                  )}
                 </div>
 
                 <div className="route-stats-grid">
@@ -888,7 +654,7 @@ export default function RoutePage() {
                   <svg width="52" height="52" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
                   </svg>
-                  <p>Upload a GPX file to see your route</p>
+                  <p>Choose a route workout from the workout list</p>
                 </div>
               ) : (
                 <>
@@ -914,7 +680,7 @@ export default function RoutePage() {
                   </div>
                   <RouteErrorBoundary>
                     {viewMode === 'map' ? (
-                      <RouteMap routePoints={routePoints} currentIndex={currentIndex} isRiding={isRiding} />
+                      <RouteMap routePoints={routePoints} distanceKm={liveStats.distanceRidden} distanceKmRef={distanceRiddenRef} telemetryRef={telemetryRef} isFollowing={isRiding && !isPaused} />
                     ) : (
                       <Suspense fallback={<div className="route-3d-status">Loading 3D view…</div>}>
                         <Route3DView

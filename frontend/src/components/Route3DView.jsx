@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { heightAt, loadTerrain } from '../services/terrain';
 import { buildRoadPath, pointAt, roadRibbon, scatterTrees, seededRandom } from '../services/routeScene';
+import { createRouteMotion } from '../services/routeMotion';
 
 const SKY_COLOR = 0xa9cde8;
 const ROAD_HALF_WIDTH_M = 3;
@@ -276,6 +277,7 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
 
       // Follow the rider
       let shownM = (distanceKmRef.current || 0) * 1000;
+      const motion = createRouteMotion(shownM);
       let last = performance.now();
       const lookDirection = new THREE.Vector3();
       const lookTarget = new THREE.Vector3();
@@ -286,15 +288,7 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         const targetM = (distanceKmRef.current || 0) * 1000;
-        if (isRidingRef.current) {
-          // Advance with current speed, and ease towards the reported distance
-          shownM += ((telemetryRef.current?.speed || 0) / 3.6) * dt;
-          shownM += (targetM - shownM) * (1 - Math.exp(-dt * 2));
-          shownM = Math.min(shownM, targetM + Math.max(0, telemetryRef.current?.speed || 0) / 3.6);
-          if (Math.abs(targetM - shownM) > 25) shownM = targetM;
-        } else {
-          shownM = targetM;
-        }
+        shownM = motion(targetM, telemetryRef.current?.speed, isRidingRef.current, now, dt);
         shownM = Math.max(0, Math.min(path.length, shownM));
 
         const eye = pointAt(path, shownM);

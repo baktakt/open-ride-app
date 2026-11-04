@@ -290,7 +290,13 @@ Add `<textevent>` elements inside any segment to show coaching messages at speci
 
 ## Route Rides
 
-Upload any GPX file that contains a track with elevation data to ride it on your trainer. The app parses the file client-side — no upload to any server.
+Select **Upload GPX** in the home workout list to import a route. It is automatically
+saved as a **Route workout**, with an elevation preview, distance, and climbing stats.
+Route workouts appear alongside other workouts and in **My Workouts**; use the
+**Route workouts** collection to filter them. Rename or delete routes from their cards.
+Select a card to open the ride screen, then connect your trainer and start riding.
+Existing saved routes appear automatically, and remain available in the training program.
+The app parses GPX files client-side — no upload to any server.
 
 **Supported GPX sources:** Strava, Komoot, Garmin Connect, RideWithGPS, and any app that exports standard `.gpx` files with `<trkpt>` elements.
 
@@ -433,6 +439,14 @@ open-ride-app/
 
 ### Nearby route photos (optional)
 
+Environment templates are provided in `frontend/.env.example` and
+`backend/.env.example`. Copy each to `.env` in the same directory for local use;
+the `.env` files are ignored by Git. Restart the development servers after changes.
+For Vercel, add the variables in each project's Environment Variables settings:
+set frontend `VITE_API_BASE_URL=https://open-ride-app-api.vercel.app` and backend
+`GOOGLE_PLACES_API_KEY` to your server key, then redeploy both projects.
+Leave `VITE_API_BASE_URL` empty locally to use Vite's backend proxy.
+
 Route rides can show nearby Google Places photos with place names, straight-line distances,
 photographer attribution, and links to Google Maps. Select **Show nearby photos** on the
 route screen to enable them for the current visit. Searches refresh every 500 metres;
@@ -450,3 +464,16 @@ an unavailable message and route riding remains usable.
 Allow backend egress to `places.googleapis.com`, and browser images from
 `*.googleusercontent.com` and `*.gstatic.com` in the hosting network/CSP configuration.
 Development and static hosting CSP templates include those image domains.
+
+On a separately hosted frontend (for example Vercel), route `/api/*` to the running
+Open Ride backend before the SPA catch-all rewrite. The SPA rewrite alone serves
+`index.html` for API requests, which cannot be parsed as JSON. Alternatively, set
+`VITE_API_BASE_URL` to the backend origin and rebuild the frontend; allow that origin
+in the frontend's CSP `connect-src`. The backend must include the nearby photos
+endpoint and have `GOOGLE_PLACES_API_KEY` configured. Check that
+`/api/nearby-photos?lat=57.77&lng=12.27` returns JSON (including a JSON configuration
+error when no key is set), rather than the frontend HTML page.
+If the backend itself returns `404 Cannot GET /api/nearby-photos`, redeploy the backend
+from a revision containing `backend/src/nearbyPhotos.ts`. Use only the backend origin
+for `VITE_API_BASE_URL` (for example `https://open-ride-app-api.vercel.app`), without
+an `/api/nearby-photos` suffix.
