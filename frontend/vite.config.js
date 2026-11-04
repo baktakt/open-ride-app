@@ -11,7 +11,7 @@ const securityHeaders = {
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: https://*.tile.openstreetmap.org",
+    "img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://*.tile.openstreetmap.org",
     "connect-src 'self'",
     "frame-ancestors 'none'",
   ].join('; '),

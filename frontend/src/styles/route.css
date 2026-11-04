@@ -711,7 +711,8 @@
 /* ── 3D route view ────────────────────────────────────────────────────────── */
 
 .route-3d {
-  position: relative;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: #1a1a2e;
@@ -719,6 +720,8 @@
 
 .route-3d canvas {
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .route-3d-status {
@@ -757,4 +760,120 @@
   color: rgba(255, 255, 255, 0.75);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   pointer-events: none;
+}
+
+.nearby-photos {
+  padding: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+}
+.nearby-photos-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.nearby-photos h2 { margin: 0; font-size: 1rem; }
+.nearby-photos p, .nearby-photos [role="status"] { color: var(--muted-50); font-size: 0.85rem; line-height: 1.5; }
+.nearby-photos button { padding: 0.5rem 0.75rem; background: var(--overlay-lg); color: var(--text-primary); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; }
+.nearby-photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem; margin-top: 0.75rem; }
+.nearby-photo { margin: 0; overflow: hidden; border-radius: 8px; background: var(--overlay-sm); }
+.nearby-photo > img, .nearby-photo-unavailable { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: contain; background: #0b1420; display: block; }
+.nearby-photo-unavailable { display: grid; place-items: center; color: var(--muted-50); }
+.nearby-photo figcaption { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.nearby-photo a { color: var(--text-primary); }
+.nearby-photo figcaption > span { color: var(--muted-50); font-size: 0.8rem; }
+.google-photos-attribution { display: block; margin-top: 1rem; padding: 8px; background: white; box-sizing: content-box; }
+
+.route-camera-controls { position: absolute; left: 0.75rem; top: 0.75rem; z-index: 2; display: flex; border-radius: 8px; overflow: hidden; background: rgba(10,10,10,0.8); }
+.route-camera-controls button { border: 0; padding: 0.5rem 0.75rem; background: transparent; color: white; cursor: pointer; }
+.route-camera-controls button[aria-pressed="true"] { background: #00d4ff; color: #0a0a0a; }
+
+/* Let the canvas shrink with its grid column when the viewport changes. */
+.route-layout > *, .route-map-section, .map-wrapper { min-width: 0; }
+@media (max-width: 900px) {
+  .route-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .route-main { padding: 1rem 0.75rem 6rem; }
+}
+
+.route-3d-warning { top: 3.5rem; }
+@media (max-width: 600px) {
+  .route-map-section .metrics-top, .route-map-section .metrics-bottom { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .route-map-section .metric-value { font-size: 2rem; }
+  .route-map-section .gauge-status { font-size: 0.7rem; }
+}
+
+
+/* A monitor in front of the bike: every riding panel shares one viewport. */
+@media (min-width: 1000px) and (min-height: 600px) {
+  .route-page { height: 100dvh; min-height: 0; display: flex; flex-direction: column; }
+  .route-page > .top-nav { flex: 0 0 64px; }
+  .route-main { flex: 1; min-height: 0; width: 100%; max-width: none; padding: 12px; }
+  .route-layout { height: 100%; grid-template-columns: clamp(212px, 17vw, 260px) minmax(0, 1fr); gap: 12px; align-items: stretch; }
+  .route-sidebar { position: relative; min-height: 0; padding: 14px; gap: 10px; }
+  .route-heading { font-size: 1.15rem; }
+  .route-sidebar .gpx-upload-btn { padding: 0.45rem 0.65rem; font-size: 0.8rem; }
+  .route-sidebar .route-name-row { flex-wrap: wrap; }
+  .route-name { overflow-wrap: anywhere; max-height: 3em; overflow: hidden; }
+  .route-stats-grid { gap: 6px; }
+  .route-stat { padding: 6px 8px; gap: 0; }
+  .route-stat-label { font-size: 0.65rem; }
+  .route-stat-value { font-size: 0.9rem; }
+  .ride-live-stats { padding: 8px 10px; gap: 4px; }
+  .ride-live-label { font-size: 0.7rem; }
+  .ride-live-value { font-size: 1.05rem; }
+  .route-controls { margin-top: auto; }
+  .route-controls button { min-height: 44px; padding: 0.6rem; font-size: 0.9rem; }
+  .route-library { position: absolute; left: 12px; right: 12px; top: 100px; z-index: 5; background: var(--card-bg); box-shadow: 0 8px 24px #0008; }
+  .route-library-list { max-height: min(280px, 45dvh); }
+
+  .route-map-section { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(220px, 19vw, 340px); grid-template-rows: 138px minmax(0, 1fr) 92px; gap: 12px; }
+  .route-map-section > .workout-metrics { grid-column: 1 / -1; display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr; gap: 12px; min-height: 0; }
+  .route-map-section .metrics-top, .route-map-section .metrics-bottom { display: contents; }
+  .route-map-section .metric-card { min-width: 0; padding: 12px 16px; gap: 8px; }
+  .route-map-section .gauge-header { gap: 8px; }
+  .route-map-section .gauge-status { font-size: 0.7rem; letter-spacing: 0.03em; }
+  .route-map-section .gauge-value, .route-map-section .metric-value { font-size: clamp(2rem, 3vw, 3.4rem); }
+  .route-map-section .metric-label { font-size: 0.75rem; }
+  .route-map-section .gauge-footer { display: none; }
+  .route-map-section .gauge-line { height: 24px; margin-top: 0; }
+  .route-map-section .gauge-track { top: 16px; }
+  .route-map-section .gauge-needle { top: 0; height: 20px; }
+  .route-map-section .gauge-ok { top: 12px; }
+  .route-map-section > .map-wrapper { grid-column: 1; grid-row: 2; height: auto; min-height: 0; }
+  .route-map-section > .elevation-section { grid-column: 1; grid-row: 3; min-height: 0; padding: 8px 12px; display: flex; flex-direction: column; }
+  .route-map-section .elevation-label { margin-bottom: 2px; font-size: 0.65rem; }
+  .route-map-section .elevation-canvas { flex: 1; min-height: 0; height: 100%; }
+  .route-map-section > .nearby-photos { grid-column: 2; grid-row: 2 / 4; min-height: 0; padding: 12px; display: flex; flex-direction: column; }
+  .nearby-photos-heading { align-items: start; gap: 6px; }
+  .nearby-photos-heading h2 { font-size: 0.85rem; }
+  .nearby-photos-heading button { padding: 4px 6px; font-size: 0.7rem; flex-shrink: 0; }
+  .nearby-photos > p { font-size: 0.8rem; }
+  .nearby-photo-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); flex: 1; min-height: 0; gap: 10px; }
+  .nearby-photo { position: relative; min-width: 0; min-height: 0; width: 100%; isolation: isolate; }
+  .nearby-photo > img, .nearby-photo-unavailable { min-height: 0; height: 100%; aspect-ratio: auto; object-fit: cover; object-position: center; }
+  .nearby-photo figcaption { position: absolute; inset: auto 0 0; padding: 24px 10px 8px; gap: 2px; min-width: 0; overflow-wrap: anywhere; background: linear-gradient(transparent, rgba(0, 0, 0, 0.88)); color: #fff; text-shadow: 0 1px 3px #000; }
+  .nearby-photo figcaption a { color: #fff; }
+  .nearby-photo figcaption > a { font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+  .nearby-photo figcaption > span { font-size: 0.7rem; color: #eee; }
+  .google-photos-attribution { flex-shrink: 0; margin-top: 8px; align-self: flex-start; }
+  .route-map-section > .map-wrapper:only-child { grid-column: 1 / -1; grid-row: 1 / -1; }
+}
+.route-rider-marker {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #17243b;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px #e63967, 0 3px 12px #0008;
+}
+
+.route-rider-marker svg {
+  width: 34px;
+  height: 34px;
+}
+
+.route-workout-link {
+  color: var(--primary-blue);
+  font-size: 0.85rem;
+  text-decoration: none;
 }

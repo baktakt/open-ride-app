@@ -20,7 +20,7 @@ initUsers();
 function AppShell() {
   const location = useLocation();
   // The workout page has its own full-screen layout; skip the footer there.
-  const hideFooter = location.pathname.startsWith('/workout/');
+  const hideFooter = location.pathname.startsWith('/workout/') || location.pathname === '/route';
 
   return (
     <>

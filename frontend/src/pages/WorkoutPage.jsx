@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
+import { EffortGauge, MetricCard } from '../components/RideGauges';
 import { useAnt } from '../contexts/AntContext';
 import { loadCachedWorkout, loadCustomWorkouts, saveCachedWorkout } from '../services/dataManager';
 import { createRideRecorder } from '../services/rideRecorder';
@@ -519,48 +520,6 @@ export default function WorkoutPage() {
   const targetCadence = Math.max(0, Math.round(currentSegment.targetCadence || 0));
   const currentCadence = Math.round(telemetry.cadence || 0);
 
-  const buildGaugeState = ({ current, target, tolerancePct, minTolerance, underText, overText }) => {
-    if (!target) {
-      return {
-        status: 'free',
-        statusText: currentSegment.type === 'MaxEffort' ? 'ALL OUT' : 'FREE RIDE',
-        gaugePosition: 50,
-        okWidth: 0,
-      };
-    }
-    const tolerance = Math.max(minTolerance, Math.round(target * tolerancePct));
-    const delta = current - target;
-    const isOn = Math.abs(delta) <= tolerance;
-    const status = isOn ? 'on' : (delta > 0 ? 'over' : 'under');
-    const statusText = isOn ? 'ON TARGET' : (delta > 0 ? overText : underText);
-    const ratio = current / target;
-    const clampedRatio = Math.max(0, Math.min(2, ratio));
-    const gaugePosition = (clampedRatio / 2) * 100;
-    const okWidth = Math.min(32, Math.max(12, (tolerance / target) * 280));
-    return { status, statusText, gaugePosition, okWidth };
-  };
-
-  const powerGauge = buildGaugeState({
-    current: currentPower,
-    target: targetPower,
-    tolerancePct: 0.03,
-    minTolerance: 2,
-    underText: 'MORE POWER',
-    overText: 'LESS POWER',
-  });
-
-  const cadenceGauge = buildGaugeState({
-    current: currentCadence,
-    target: targetCadence,
-    tolerancePct: 0.04,
-    minTolerance: 3,
-    underText: 'SPIN FASTER',
-    overText: 'SPIN SLOWER',
-  });
-
-  const powerCardClass = `metric-card gauge-card status-${powerGauge.status}`;
-  const cadenceCardClass = `metric-card gauge-card status-${cadenceGauge.status}`;
-
   const formatSegmentIntensity = (segment) => {
     if (segment.mode !== 'erg') return segment.type === 'MaxEffort' ? 'All out' : 'Free';
     const start = Math.round(segment.startFtp * 100);
@@ -666,54 +625,8 @@ export default function WorkoutPage() {
 
         <div className="workout-metrics">
           <div className="metrics-top">
-            <div className={powerCardClass} style={{ '--gauge-position': `${powerGauge.gaugePosition}%`, '--ok-width': `${powerGauge.okWidth}%` }}>
-              <div className="gauge-header">
-                <div className="metric-label">POWER</div>
-                <div className="gauge-status">{powerGauge.statusText}</div>
-              </div>
-              <div className="gauge-body">
-                <div className="gauge-value">
-                  {currentPower}
-                  <span>W</span>
-                </div>
-              </div>
-              <div className="gauge-line" aria-hidden="true">
-                <div className="gauge-track"></div>
-                <div className="gauge-ok"></div>
-                <div className="gauge-needle"></div>
-              </div>
-              <div className="gauge-footer">
-                <span className="gauge-target">
-                  Target <strong>{targetPower || '--'}</strong>W
-                  {intensityBias !== 100 && (
-                    <span className="metric-bias"> ({intensityBias}%)</span>
-                  )}
-                </span>
-              </div>
-            </div>
-
-            <div className={cadenceCardClass} style={{ '--gauge-position': `${cadenceGauge.gaugePosition}%`, '--ok-width': `${cadenceGauge.okWidth}%` }}>
-              <div className="gauge-header">
-                <div className="metric-label">CADENCE</div>
-                <div className="gauge-status">{cadenceGauge.statusText}</div>
-              </div>
-              <div className="gauge-body">
-                <div className="gauge-value">
-                  {currentCadence}
-                  <span>rpm</span>
-                </div>
-              </div>
-              <div className="gauge-line" aria-hidden="true">
-                <div className="gauge-track"></div>
-                <div className="gauge-ok"></div>
-                <div className="gauge-needle"></div>
-              </div>
-              <div className="gauge-footer">
-                <span className="gauge-target">
-                  Target <strong>{targetCadence || '--'}</strong> rpm
-                </span>
-              </div>
-            </div>
+            <EffortGauge label="POWER" value={currentPower} unit="W" target={targetPower} freeMax={ftp * 2} allOut={currentSegment.type === 'MaxEffort'} bias={intensityBias} />
+            <EffortGauge label="CADENCE" value={currentCadence} unit="rpm" target={targetCadence} freeMax={160} allOut={currentSegment.type === 'MaxEffort'} />
           </div>
 
           <div className="metrics-bottom">
@@ -725,21 +638,8 @@ export default function WorkoutPage() {
             </div>
           </div>
 
-          <div className="metric-card heart-rate">
-            <div className="metric-label">HEART RATE</div>
-            <div className="metric-value">
-              <span>{telemetry.heartRate || '--'}</span>
-              <span className="metric-unit">bpm</span>
-            </div>
-          </div>
-
-          <div className="metric-card speed">
-            <div className="metric-label">SPEED</div>
-            <div className="metric-value">
-              <span>{telemetry.speed.toFixed(1)}</span>
-              <span className="metric-unit">km/h</span>
-            </div>
-          </div>
+          <MetricCard label="HEART RATE" value={telemetry.heartRate || '--'} unit="bpm" className="heart-rate" />
+          <MetricCard label="SPEED" value={(telemetry.speed || 0).toFixed(1)} unit="km/h" className="speed" />
 
           <div className="metric-card distance">
             <div className="metric-label">DISTANCE</div>

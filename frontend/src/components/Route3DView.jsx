@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { loadTerrain } from '../services/terrain';
+import { heightAt, loadTerrain } from '../services/terrain';
 import { buildRoadPath, pointAt, roadRibbon, scatterTrees, seededRandom } from '../services/routeScene';
+import { createRouteMotion } from '../services/routeMotion';
 
 const SKY_COLOR = 0xa9cde8;
 const ROAD_HALF_WIDTH_M = 3;
 const EYE_HEIGHT_M = 1.7;
-const LOOK_AHEAD_M = 30;
+const LOOK_AHEAD_M = 24;
 const TREE_COUNT = 2500;
 
 // Terrain colours, blended by relative height and slope
@@ -120,6 +121,9 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
   const containerRef = useRef(null);
   const isRidingRef = useRef(isRiding);
   const [status, setStatus] = useState({ state: 'loading' });
+  const [cameraMode, setCameraMode] = useState('rider');
+  const cameraModeRef = useRef(cameraMode);
+  useEffect(() => { cameraModeRef.current = cameraMode; }, [cameraMode]);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
   useEffect(() => { isRidingRef.current = isRiding; }, [isRiding]);
@@ -152,19 +156,29 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
         setStatus({ state: 'error', message: 'The 3D view needs WebGL, which is not available in this browser.' });
         return;
       }
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setSize(container.clientWidth, container.clientHeight, false);
       container.appendChild(renderer.domElement);
 
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(SKY_COLOR);
-      scene.fog = new THREE.Fog(SKY_COLOR, 600, 6000);
+      scene.fog = new THREE.Fog(SKY_COLOR, 450, 4500);
+      const sky = new THREE.Mesh(new THREE.SphereGeometry(11000, 24, 16), new THREE.ShaderMaterial({
+        side: THREE.BackSide, depthWrite: false,
+        uniforms: { top: { value: new THREE.Color(0x4f91ce) }, horizon: { value: new THREE.Color(SKY_COLOR) } },
+        vertexShader: 'varying vec3 direction; void main() { direction = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: 'uniform vec3 top; uniform vec3 horizon; varying vec3 direction; void main() { float h = max(normalize(direction).y, 0.0); gl_FragColor = vec4(mix(horizon, top, pow(h, 0.55)), 1.0); }',
+      }));
+      scene.add(sky);
       scene.add(new THREE.HemisphereLight(0xdff0ff, 0x4a5a3a, 1.4));
       const sun = new THREE.DirectionalLight(0xfff4e0, 1.6);
       sun.position.set(-1, 1.2, 0.6);
       scene.add(sun);
 
-      const camera = new THREE.PerspectiveCamera(65, container.clientWidth / container.clientHeight, 0.3, 15000);
+      const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.3, 15000);
 
       const random = seededRandom(routePoints.length);
       const terrainMesh = buildTerrainMesh(terrain.field, random);
@@ -174,6 +188,8 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
       const roadMaterial = new THREE.MeshLambertMaterial({
         color: 0x3b3b3e, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
       });
+      const shoulder = roadRibbon(path, ROAD_HALF_WIDTH_M + 1.1);
+      scene.add(ribbonMesh(shoulder.left, shoulder.right, new THREE.MeshLambertMaterial({ color: 0x9b947b }), -0.04));
       const edges = roadRibbon(path, ROAD_HALF_WIDTH_M);
       scene.add(ribbonMesh(edges.left, edges.right, roadMaterial));
 
@@ -184,17 +200,56 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
       const centre = roadRibbon(path, 0.12);
       scene.add(ribbonMesh(centre.left, centre.right, lineMaterial, 0.02, i => i % 2 === 0));
 
+      // Continuous edge markings give bends and gradients a clear visual reference.
+      const inner = roadRibbon(path, ROAD_HALF_WIDTH_M - 0.22);
+      const outer = roadRibbon(path, ROAD_HALF_WIDTH_M - 0.10);
+      scene.add(ribbonMesh(inner.left, outer.left, lineMaterial, 0.025));
+      scene.add(ribbonMesh(inner.right, outer.right, lineMaterial, 0.025));
+
+      // Instanced reflector posts provide a sense of speed without extra draw calls per post.
+      const postCount = Math.floor(path.length / 40);
+      const posts = new THREE.InstancedMesh(new THREE.BoxGeometry(0.12, 1, 0.15), new THREE.MeshLambertMaterial({ color: 0xeee9d9 }), postCount * 2);
+      const reflectors = new THREE.InstancedMesh(new THREE.BoxGeometry(0.14, 0.16, 0.17), new THREE.MeshLambertMaterial({ color: 0xffcb68 }), postCount * 2);
+      const postMatrix = new THREE.Matrix4();
+      for (let i = 0; i < postCount; i++) {
+        const p = pointAt(path, i * 40 + 10);
+        const next = pointAt(path, Math.min(path.length, i * 40 + 15));
+        const length = Math.hypot(next.x - p.x, next.z - p.z) || 1;
+        for (let side = 0; side < 2; side++) {
+          const offset = (side ? 1 : -1) * (ROAD_HALF_WIDTH_M + 1.7);
+          const x = p.x + (next.z - p.z) / length * offset;
+          const z = p.z - (next.x - p.x) / length * offset;
+          const y = heightAt(terrain.field, x, z);
+          postMatrix.makeTranslation(x, y + 0.5, z);
+          posts.setMatrixAt(i * 2 + side, postMatrix);
+          postMatrix.makeTranslation(x, y + 0.85, z);
+          reflectors.setMatrixAt(i * 2 + side, postMatrix);
+        }
+      }
+      scene.add(posts, reflectors);
+
       const trees = scatterTrees(path, terrain.field, { count: TREE_COUNT, seed: routePoints.length });
-      const treeGeometry = new THREE.ConeGeometry(2.2, 8, 7);
-      treeGeometry.translate(0, 4, 0);
+      const treeGeometry = new THREE.ConeGeometry(2.7, 7, 8);
+      treeGeometry.translate(0, 5.5, 0);
       const treeMesh = new THREE.InstancedMesh(treeGeometry, new THREE.MeshLambertMaterial({ color: 0x2f4f2a }), trees.length);
+      const upperGeometry = new THREE.ConeGeometry(1.9, 5.5, 8);
+      upperGeometry.translate(0, 8, 0);
+      const upperTrees = new THREE.InstancedMesh(upperGeometry, new THREE.MeshLambertMaterial({ color: 0x426b35 }), trees.length);
+      const trunkGeometry = new THREE.CylinderGeometry(0.18, 0.32, 4, 5);
+      trunkGeometry.translate(0, 2, 0);
+      const trunks = new THREE.InstancedMesh(trunkGeometry, new THREE.MeshLambertMaterial({ color: 0x6b5138 }), trees.length);
       const matrix = new THREE.Matrix4();
+      const treeColor = new THREE.Color();
       trees.forEach((tree, i) => {
         matrix.makeScale(tree.scale, tree.scale, tree.scale);
         matrix.setPosition(tree.x, tree.y - 0.3, tree.z);
         treeMesh.setMatrixAt(i, matrix);
+        upperTrees.setMatrixAt(i, matrix);
+        trunks.setMatrixAt(i, matrix);
+        treeColor.setHSL(0.27 + random() * 0.07, 0.25 + random() * 0.2, 0.22 + random() * 0.12);
+        treeMesh.setColorAt(i, treeColor);
       });
-      scene.add(treeMesh);
+      scene.add(treeMesh, upperTrees, trunks);
 
       scene.add(buildFinishArch(path));
 
@@ -207,7 +262,7 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
         const width = container.clientWidth;
         const height = container.clientHeight;
         if (!width || !height) return;
-        renderer.setSize(width, height);
+        renderer.setSize(width, height, false);
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
       });
@@ -222,7 +277,9 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
 
       // Follow the rider
       let shownM = (distanceKmRef.current || 0) * 1000;
+      const motion = createRouteMotion(shownM);
       let last = performance.now();
+      const lookDirection = new THREE.Vector3();
       const lookTarget = new THREE.Vector3();
       const desiredLook = new THREE.Vector3();
       let firstFrame = true;
@@ -231,18 +288,17 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         const targetM = (distanceKmRef.current || 0) * 1000;
-        if (isRidingRef.current) {
-          // Advance with current speed, and ease towards the reported distance
-          shownM += ((telemetryRef.current?.speed || 0) / 3.6) * dt;
-          shownM += (targetM - shownM) * Math.min(1, dt * 1.5);
-        } else {
-          shownM = targetM;
-        }
+        shownM = motion(targetM, telemetryRef.current?.speed, isRidingRef.current, now, dt);
         shownM = Math.max(0, Math.min(path.length, shownM));
 
         const eye = pointAt(path, shownM);
-        const ahead = pointAt(path, Math.min(path.length, shownM + LOOK_AHEAD_M));
-        camera.position.set(eye.x, eye.y + EYE_HEIGHT_M, eye.z);
+        const lookAheadM = LOOK_AHEAD_M + Math.min(20, (telemetryRef.current?.speed || 0) / 3.6);
+        const ahead = pointAt(path, Math.min(path.length, shownM + lookAheadM));
+        const eyeHeight = cameraModeRef.current === 'rider' ? EYE_HEIGHT_M : 5.5;
+        const desiredY = eye.y + eyeHeight;
+        const smoothY = firstFrame ? desiredY : THREE.MathUtils.lerp(camera.position.y, desiredY, 1 - Math.exp(-dt * 7));
+        camera.position.set(eye.x, Math.max(eye.y + 1.2, smoothY), eye.z);
+        sky.position.copy(camera.position);
         if (shownM >= path.length - 1) {
           // At the finish keep looking along the final stretch
           const back = pointAt(path, path.length - LOOK_AHEAD_M);
@@ -250,8 +306,11 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
         } else {
           desiredLook.set(ahead.x, ahead.y + EYE_HEIGHT_M - 0.3, ahead.z);
         }
-        if (firstFrame) lookTarget.copy(desiredLook);
-        else lookTarget.lerp(desiredLook, Math.min(1, dt * 4));
+        // Smooth a direction, rather than a world-space target that falls behind on tight turns.
+        desiredLook.sub(camera.position).normalize();
+        if (firstFrame) lookDirection.copy(desiredLook);
+        else lookDirection.lerp(desiredLook, 1 - Math.exp(-dt * 6)).normalize();
+        lookTarget.copy(camera.position).add(lookDirection);
         firstFrame = false;
         camera.lookAt(lookTarget);
 
@@ -266,7 +325,7 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
       abort.abort();
       cancelAnimationFrame(frame);
       resizeObserver?.disconnect();
-      disposables.forEach(item => item.dispose());
+      new Set(disposables).forEach(item => item.dispose());
       if (renderer) {
         renderer.dispose();
         renderer.domElement.remove();
@@ -276,6 +335,10 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
 
   return (
     <div className="route-3d" ref={containerRef}>
+      <div className="route-camera-controls" role="group" aria-label="3D camera">
+        <button type="button" aria-pressed={cameraMode === 'rider'} onClick={() => setCameraMode('rider')}>Rider</button>
+        <button type="button" aria-pressed={cameraMode === 'scenic'} onClick={() => setCameraMode('scenic')}>Scenic</button>
+      </div>
       {status.state === 'loading' && (
         <div className="route-3d-status">Loading terrain…</div>
       )}

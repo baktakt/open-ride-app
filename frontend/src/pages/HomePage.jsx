@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
 import { deleteCustomWorkout, renameCustomWorkout } from '../services/aiWorkoutGenerator';
@@ -13,15 +13,25 @@ import {
 } from '../services/dataManager';
 import { listRideFileIds, loadRideFile, deleteRideFiles } from '../services/rideFiles';
 import { downloadRide } from '../services/rideExport';
+import RouteWorkoutCard from '../components/RouteWorkoutCard';
+import { loadAllRoutes, saveRoute, renameRoute, deleteRoute } from '../services/routeLibrary';
+import { parseGPX } from '../services/gpx';
+import { buildRouteProfile, elevationGain } from '../services/routeProfile';
 import '../styles/index.css';
 
 export default function HomePage() {
+  const [searchParams] = useSearchParams();
+  const [routes, setRoutes] = useState([]);
+  const [routeMessage, setRouteMessage] = useState('');
+  const [importingRoute, setImportingRoute] = useState(false);
+  const uploadRef = useRef(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'mine'
   const [workouts, setWorkouts] = useState([]);
+  const libraryWorkouts = useMemo(() => [...routes.map(route => ({ ...route, type: 'route', category: 'Route workouts', tags: ['GPX', 'Route'] })), ...workouts], [routes, workouts]);
   const [filteredWorkouts, setFilteredWorkouts] = useState([]);
   const [selectedDuration, setSelectedDuration] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') === 'routes' ? 'Route workouts' : null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
@@ -40,6 +50,7 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchWorkouts();
+    loadAllRoutes().then(setRoutes).catch(() => setRouteMessage('Could not load saved routes.'));
     loadHistory();
     setRouteHistory(loadRouteHistory());
     listRideFileIds().then(setRideFileIds).catch(() => {});
@@ -104,7 +115,6 @@ export default function HomePage() {
       const data = await response.json();
       const workoutsList = data.workouts || [];
       setWorkouts(workoutsList);
-      setFilteredWorkouts(workoutsList);
       saveCachedWorkouts(workoutsList);
       setCachedAt(loadCachedWorkoutsTimestamp());
       setApiStatus('ok');
@@ -112,16 +122,13 @@ export default function HomePage() {
       const cached = loadCachedWorkouts();
       if (cached.length > 0) {
         setWorkouts(cached);
-        setFilteredWorkouts(cached);
         setApiStatus('cached');
       } else {
         const local = loadCustomWorkouts();
         if (local.length > 0) {
           setWorkouts(local);
-          setFilteredWorkouts(local);
         } else {
           setWorkouts([]);
-          setFilteredWorkouts([]);
         }
         setApiStatus('offline');
       }
@@ -132,7 +139,7 @@ export default function HomePage() {
   // Derive categories with counts and subcategories
   const categoryData = useMemo(() => {
     const cats = {};
-    workouts.forEach(w => {
+    libraryWorkouts.forEach(w => {
       if (!w.category) return;
       if (!cats[w.category]) {
         cats[w.category] = { count: 0, subcategories: {} };
@@ -144,7 +151,7 @@ export default function HomePage() {
       }
     });
     return cats;
-  }, [workouts]);
+  }, [libraryWorkouts]);
 
   const categories = useMemo(() => Object.keys(categoryData).sort(), [categoryData]);
 
@@ -156,7 +163,7 @@ export default function HomePage() {
 
   // Filter workouts
   useEffect(() => {
-    let filtered = [...workouts];
+    let filtered = [...libraryWorkouts];
 
     // Search filter
     if (searchQuery.trim()) {
@@ -182,6 +189,7 @@ export default function HomePage() {
     // Duration filter
     if (selectedDuration) {
       filtered = filtered.filter(w => {
+        if (w.type === 'route') return false; // Route duration depends on riding pace.
         const duration = w.totalDuration || 0;
         if (selectedDuration === 'short') return duration <= 30 * 60;
         if (selectedDuration === 'medium') return duration > 30 * 60 && duration <= 60 * 60;
@@ -191,7 +199,7 @@ export default function HomePage() {
     }
 
     setFilteredWorkouts(filtered);
-  }, [selectedDuration, selectedCategory, selectedSubcategory, searchQuery, workouts]);
+  }, [selectedDuration, selectedCategory, selectedSubcategory, searchQuery, libraryWorkouts]);
 
   const hasActiveFilters = selectedDuration || selectedCategory || selectedSubcategory || searchQuery.trim();
 
@@ -207,6 +215,7 @@ export default function HomePage() {
   };
 
   const toggleCategory = (category) => {
+    if (category === 'Route workouts') setSelectedDuration(null);
     if (selectedCategory === category) {
       setSelectedCategory(null);
       setSelectedSubcategory(null);
@@ -302,6 +311,51 @@ export default function HomePage() {
     }
   }, [renamingId]);
 
+  const handleRouteUpload = useCallback(async event => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setImportingRoute(true);
+    setRouteMessage('');
+    try {
+      const points = parseGPX(await file.text());
+      const totalDistance = points[points.length - 1].distanceFromStart;
+      if (points.length < 2 || totalDistance <= 0) throw new Error('Choose a GPX with at least two different track points.');
+      let minEle = Infinity;
+      let maxEle = -Infinity;
+      for (const point of points) { minEle = Math.min(minEle, point.ele); maxEle = Math.max(maxEle, point.ele); }
+      await saveRoute({ name: file.name.replace(/\.gpx$/i, ''), points, totalDistance, elevationGain: elevationGain(buildRouteProfile(points)), minEle, maxEle });
+      setRoutes(await loadAllRoutes());
+      setActiveTab('all');
+      clearAllFilters();
+      setSelectedCategory('Route workouts');
+      setRouteMessage('Route workout saved on this device. Select it below to ride.');
+    } catch (error) {
+      setRouteMessage(error.message || 'Could not import this GPX.');
+    } finally {
+      setImportingRoute(false);
+    }
+  }, []);
+
+  const handleRenameRoute = useCallback(async (route, name) => {
+    if (!name || name === route.name) return;
+    try {
+      await renameRoute(route.id, name);
+      setRoutes(await loadAllRoutes());
+    } catch { setRouteMessage('Could not rename this route.'); }
+  }, []);
+
+  const handleDeleteRoute = useCallback(async route => {
+    try {
+      await deleteRoute(route.id);
+      setRoutes(await loadAllRoutes());
+      const current = JSON.parse(localStorage.getItem('openride_current_route') || 'null');
+      if (current?.id === route.id) localStorage.removeItem('openride_current_route');
+    } catch { setRouteMessage('Could not delete this route.'); }
+  }, []);
+
+  const renderRouteCard = route => <RouteWorkoutCard key={route.id} route={route} onRename={handleRenameRoute} onDelete={handleDeleteRoute} />;
+
   const durationLabels = { short: '0\u201330 min', medium: '31\u201360 min', long: '60+ min' };
   const isApiUnavailable = apiStatus === 'cached' || apiStatus === 'offline';
   const cachedDate = cachedAt ? new Date(cachedAt) : null;
@@ -320,9 +374,16 @@ export default function HomePage() {
           <section className="hero-section">
             <div className="hero-content">
               <h1>My Activities</h1>
-              <p className="hero-subtitle">Choose a workout or generate one with AI</p>
+              <p className="hero-subtitle">Choose a workout, ride a route, or create one with AI</p>
             </div>
           </section>
+
+          <div className="route-import-toolbar">
+            <p>Turn a GPX track into a route workout, saved on this device.</p>
+            <button type="button" className="my-workouts-new-btn" disabled={importingRoute} onClick={() => uploadRef.current?.click()}>{importingRoute ? 'Saving route…' : 'Upload GPX'}</button>
+            <input ref={uploadRef} type="file" accept=".gpx" onChange={handleRouteUpload} hidden aria-label="Upload GPX route workout" />
+          </div>
+          {routeMessage && <p role="status">{routeMessage}</p>}
 
           {/* Tab switcher */}
           <div className="home-tabs">
@@ -346,12 +407,13 @@ export default function HomePage() {
           {/* My Workouts tab */}
           {activeTab === 'mine' && (
             <section className="my-workouts-section">
+              {routes.length > 0 && <div className="workouts-grid">{routes.map(renderRouteCard)}</div>}
               {myWorkouts.length === 0 ? (
                 <div className="my-workouts-empty">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ opacity: 0.25, marginBottom: '1rem' }}>
                     <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
                   </svg>
-                  <p>No custom workouts yet</p>
+                  <p>No AI workouts yet</p>
                   <Link to="/ai-workout" className="my-workouts-cta">
                     Generate your first AI workout
                   </Link>
@@ -696,13 +758,14 @@ export default function HomePage() {
           {/* Results Count */}
           <div className="results-count">
             {filteredWorkouts.length} {filteredWorkouts.length === 1 ? 'workout' : 'workouts'}
-            {hasActiveFilters && ` of ${workouts.length}`}
+            {hasActiveFilters && ` of ${libraryWorkouts.length}`}
           </div>
 
           {/* Workouts Grid */}
           <section className="workouts-section">
             <div className="workouts-grid">
               {filteredWorkouts.map(workout => {
+                if (workout.type === 'route') return renderRouteCard(workout);
                 const bars = generateChartBars(workout.chartProfile);
                 return (
                   <Link
