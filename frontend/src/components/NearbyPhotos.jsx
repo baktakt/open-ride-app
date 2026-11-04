@@ -12,6 +12,7 @@ function safeLink(value) {
 
 export default function NearbyPhotos({ routePoints, distanceKm }) {
   const [enabled, setEnabled] = useState(false);
+  const [selected, setSelected] = useState(0);
   const [result, setResult] = useState({ state: 'idle', places: [] });
   const [retry, setRetry] = useState(0);
   // Refresh every 500 m, rather than on every telemetry tick. No GPX file is sent.
@@ -23,6 +24,7 @@ export default function NearbyPhotos({ routePoints, distanceKm }) {
   useEffect(() => {
     if (!enabled || !searchPosition) return undefined;
     const controller = new AbortController();
+    setSelected(0);
     setResult({ state: 'loading', places: [] });
     fetch(`${apiBase}/api/nearby-photos?lat=${searchPosition.lat}&lng=${searchPosition.lng}`, { signal: controller.signal })
       .then(async response => {
@@ -45,7 +47,7 @@ export default function NearbyPhotos({ routePoints, distanceKm }) {
         {result.state === 'error' && <>{result.message} <button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></>}
       </div>
       <div className="nearby-photo-grid">
-        {result.places.map(place => {
+        {result.places.slice(selected, selected + 1).map(place => {
           const meters = currentPosition ? distanceM(currentPosition, place.location) : place.distanceM;
           return <figure className="nearby-photo" key={place.photoUrl}>
             <PlacePhoto src={`${apiBase}${place.photoUrl}`} name={place.name} />
@@ -57,6 +59,11 @@ export default function NearbyPhotos({ routePoints, distanceKm }) {
           </figure>;
         })}
       </div>
+      {result.places.length > 1 && <div className="nearby-photo-navigation" aria-label="Photo navigation">
+        <button type="button" aria-label="Previous place photo" onClick={() => setSelected(value => (value - 1 + result.places.length) % result.places.length)}>←</button>
+        <span>{selected + 1} / {result.places.length}</span>
+        <button type="button" aria-label="Next place photo" onClick={() => setSelected(value => (value + 1) % result.places.length)}>→</button>
+      </div>}
       <img className="google-photos-attribution" src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png" alt="Powered by Google" width="120" height="14" />
     </>}
   </section>;

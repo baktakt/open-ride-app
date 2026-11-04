@@ -118,6 +118,13 @@ function formatDuration(seconds) {
 
 function ElevationCanvas({ routePoints, routeStats, currentIndex, isRiding }) {
   const canvasRef = useRef(null);
+  const [canvasSize, setCanvasSize] = useState(0);
+
+  useEffect(() => {
+    const observer = new ResizeObserver(() => setCanvasSize(value => value + 1));
+    if (canvasRef.current) observer.observe(canvasRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -203,7 +210,7 @@ function ElevationCanvas({ routePoints, routeStats, currentIndex, isRiding }) {
       const x = pad.left + (dist / totalDistance) * innerW;
       ctx.fillText(`${dist.toFixed(1)}km`, x, ch - 6);
     }
-  }, [routePoints, routeStats, currentIndex, isRiding]);
+  }, [routePoints, routeStats, currentIndex, isRiding, canvasSize]);
 
   return <canvas ref={canvasRef} className="elevation-canvas" />;
 }

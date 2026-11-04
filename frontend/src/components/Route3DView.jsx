@@ -159,7 +159,7 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.15;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setSize(container.clientWidth, container.clientHeight, false);
       container.appendChild(renderer.domElement);
 
       const scene = new THREE.Scene();
@@ -261,7 +261,7 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
         const width = container.clientWidth;
         const height = container.clientHeight;
         if (!width || !height) return;
-        renderer.setSize(width, height);
+        renderer.setSize(width, height, false);
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
       });
