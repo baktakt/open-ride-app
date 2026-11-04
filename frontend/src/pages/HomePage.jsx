@@ -342,7 +342,7 @@ export default function HomePage() {
     try {
       await renameRoute(route.id, name);
       setRoutes(await loadAllRoutes());
-    } catch { setRouteMessage('Could not rename this route.'); }
+    } catch (error) { throw error; }
   }, []);
 
   const handleDeleteRoute = useCallback(async route => {
@@ -351,7 +351,7 @@ export default function HomePage() {
       setRoutes(await loadAllRoutes());
       const current = JSON.parse(localStorage.getItem('openride_current_route') || 'null');
       if (current?.id === route.id) localStorage.removeItem('openride_current_route');
-    } catch { setRouteMessage('Could not delete this route.'); }
+    } catch (error) { throw error; }
   }, []);
 
   const renderRouteCard = route => <RouteWorkoutCard key={route.id} route={route} onRename={handleRenameRoute} onDelete={handleDeleteRoute} />;
@@ -378,11 +378,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          <div className="route-import-toolbar">
-            <p>Turn a GPX track into a route workout, saved on this device.</p>
-            <button type="button" className="my-workouts-new-btn" disabled={importingRoute} onClick={() => uploadRef.current?.click()}>{importingRoute ? 'Saving route…' : 'Upload GPX'}</button>
-            <input ref={uploadRef} type="file" accept=".gpx" onChange={handleRouteUpload} hidden aria-label="Upload GPX route workout" />
-          </div>
+          <input ref={uploadRef} type="file" accept=".gpx" onChange={handleRouteUpload} hidden aria-label="Upload GPX route workout" />
           {routeMessage && <p role="status">{routeMessage}</p>}
 
           {/* Tab switcher */}
@@ -402,6 +398,7 @@ export default function HomePage() {
                 <span className="home-tab-count">{myWorkouts.length}</span>
               )}
             </button>
+            <button type="button" className="route-import-action" disabled={importingRoute} onClick={() => uploadRef.current?.click()} title="Import a GPX as a saved route workout">{importingRoute ? 'Saving route…' : 'Import GPX'}</button>
           </div>
 
           {/* My Workouts tab */}
@@ -652,7 +649,7 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Category Chips - Horizontal Scrollable */}
+            {/* Collection filters */}
             <div className="filter-section">
               <div className="filter-section-header">
                 <span className="filter-label">Collection</span>

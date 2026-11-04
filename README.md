@@ -224,7 +224,9 @@ AI-generated and custom workouts live in your browser's `localStorage` under the
 
 ### Export & Import
 
-Back up all your data — settings, ride history, training program, and saved workouts (including raw XML) — to a JSON file. Import it on any device or browser to restore your full setup.
+Back up every rider profile and its settings, histories, training program, and custom workouts (including raw XML), plus saved GPX routes and detailed ride recordings, in one JSON file. Rider ownership and the active profile are preserved. API keys are excluded.
+
+Importing a full backup replaces all profiles, routes and ride recordings on the destination device. Older single-rider backups are still supported and restore their data to the current rider. Reload the page after importing.
 
 Go to **Settings → Data Management** to export or import.
 
