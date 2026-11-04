@@ -758,3 +758,42 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   pointer-events: none;
 }
+
+.nearby-photos {
+  padding: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+}
+.nearby-photos-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.nearby-photos h2 { margin: 0; font-size: 1rem; }
+.nearby-photos p, .nearby-photos [role="status"] { color: var(--muted-50); font-size: 0.85rem; line-height: 1.5; }
+.nearby-photos button { padding: 0.5rem 0.75rem; background: var(--overlay-lg); color: var(--text-primary); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; }
+.nearby-photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem; margin-top: 0.75rem; }
+.nearby-photo { margin: 0; overflow: hidden; border-radius: 8px; background: var(--overlay-sm); }
+.nearby-photo > img, .nearby-photo-unavailable { width: 100%; height: 170px; object-fit: cover; display: block; }
+.nearby-photo-unavailable { display: grid; place-items: center; color: var(--muted-50); }
+.nearby-photo figcaption { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.nearby-photo a { color: var(--text-primary); }
+.nearby-photo figcaption > span { color: var(--muted-50); font-size: 0.8rem; }
+.google-photos-attribution { display: block; margin-top: 1rem; padding: 8px; background: white; box-sizing: content-box; }
+
+.route-camera-controls { position: absolute; left: 0.75rem; top: 0.75rem; z-index: 2; display: flex; border-radius: 8px; overflow: hidden; background: rgba(10,10,10,0.8); }
+.route-camera-controls button { border: 0; padding: 0.5rem 0.75rem; background: transparent; color: white; cursor: pointer; }
+.route-camera-controls button[aria-pressed="true"] { background: #00d4ff; color: #0a0a0a; }
+
+/* Let the canvas shrink with its grid column when the viewport changes. */
+.route-layout > *, .route-map-section, .map-wrapper { min-width: 0; }
+@media (max-width: 900px) {
+  .route-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .route-main { padding: 1rem 0.75rem 6rem; }
+}
+
+.route-3d-warning { top: 3.5rem; }
+@media (max-width: 600px) {
+  .route-map-section .metrics-top, .route-map-section .metrics-bottom { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .route-map-section .metric-value { font-size: 2rem; }
+  .route-map-section .gauge-status { font-size: 0.7rem; }
+}

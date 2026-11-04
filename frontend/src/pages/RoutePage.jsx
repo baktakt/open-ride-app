@@ -4,6 +4,8 @@ import L from 'leaflet';
 import { useAnt } from '../contexts/AntContext';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
+import RideGauges from '../components/RideGauges';
+import NearbyPhotos from '../components/NearbyPhotos';
 import {
   saveRoute,
   loadAllRoutes,
@@ -835,18 +837,6 @@ export default function RoutePage() {
                         {liveStats.grade > 0 ? '+' : ''}{liveStats.grade}%
                       </span>
                     </div>
-                    <div className="ride-live-stat">
-                      <span className="ride-live-label">Power</span>
-                      <span className="ride-live-value">{telemetry.power} W</span>
-                    </div>
-                    <div className="ride-live-stat">
-                      <span className="ride-live-label">Cadence</span>
-                      <span className="ride-live-value">{telemetry.cadence} rpm</span>
-                    </div>
-                    <div className="ride-live-stat">
-                      <span className="ride-live-label">Speed</span>
-                      <span className="ride-live-value">{telemetry.speed.toFixed(1)} km/h</span>
-                    </div>
                   </div>
                 )}
 
@@ -884,6 +874,7 @@ export default function RoutePage() {
 
           {/* Map + elevation */}
           <section className="route-map-section" aria-label="Route map and elevation profile">
+            {routeStats && <RideGauges telemetry={telemetry} ftp={readFtp()} />}
             <div className="map-wrapper">
               {routePoints.length === 0 ? (
                 <div className="map-placeholder">
@@ -923,7 +914,7 @@ export default function RoutePage() {
                           routePoints={routePoints}
                           distanceKmRef={distanceRiddenRef}
                           telemetryRef={telemetryRef}
-                          isRiding={isRiding}
+                          isRiding={isRiding && !isPaused}
                         />
                       </Suspense>
                     )}
@@ -932,6 +923,7 @@ export default function RoutePage() {
               )}
             </div>
 
+            {routeStats && <NearbyPhotos routePoints={routePoints} distanceKm={liveStats.distanceRidden} />}
             {routeStats && (
               <div className="elevation-section">
                 <div className="elevation-label">Elevation profile</div>

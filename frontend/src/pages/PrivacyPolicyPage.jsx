@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
         </Link>
 
         <h1>Privacy Policy</h1>
-        <p className="legal-meta">Effective date: 1 January 2025 &mdash; Last updated: 1 January 2025</p>
+        <p className="legal-meta">Effective date: 1 January 2025 &mdash; Last updated: 4 November 2026</p>
 
         <p className="legal-intro">
           Open Ride is built on a core principle of privacy by design. This Privacy Policy
@@ -28,8 +28,8 @@ export default function PrivacyPolicyPage() {
         <div className="legal-section">
           <h2>1. No Data Collection</h2>
           <p>
-            Open Ride does <strong>not</strong> collect, transmit, or store any personal data
-            on external servers. There is no backend database, no user account system, no
+            Open Ride does <strong>not</strong> store your workout history or health measurements
+            on external servers. Optional route scenery uses location-based requests as described below. There is no backend database, no user account system, no
             analytics service, and no telemetry of any kind integrated into the Service.
           </p>
           <p>
@@ -81,11 +81,9 @@ export default function PrivacyPolicyPage() {
         <div className="legal-section">
           <h2>4. Network Requests</h2>
           <p>
-            The Service communicates only with its own local backend server (running on your
-            machine, typically at <code style={{margin: '0 0.25rem', padding: '0.1rem 0.35rem', background: 'var(--overlay-md)', borderRadius: '4px', fontSize: '0.85em'}}>localhost:3001</code>)
-            to fetch workout files and application status. No requests are made to third-party
-            servers, analytics platforms, advertising networks, or content-delivery networks
-            as part of normal operation.
+            The Service fetches workout files and application status from its backend.
+            The route map loads map tiles from OpenStreetMap. These requests reveal the
+            viewed map area and your browser&rsquo;s IP address to the tile provider.
           </p>
           <p>
             The 3D route view needs elevation data for the area around your route. Your browser
@@ -94,6 +92,15 @@ export default function PrivacyPolicyPage() {
             the AWS Open Data &ldquo;Terrain Tiles&rdquo;) and caches it. The provider
             only sees requests from the backend, never from your browser, and the request contains
             map tile coordinates only &mdash; not your route, ride data or any identifier.
+          </p>
+          <p>
+            When you select &ldquo;Show nearby photos&rdquo;, the current position along your
+            GPX route is sent through the backend to Google Places to find nearby place photos.
+            Searches refresh approximately every 500 metres. Your full GPX file and health
+            measurements are not sent. Photos and Google attribution images load directly
+            from Google, which receives your IP address. Choose &ldquo;Hide photos&rdquo; to stop
+            photo requests. Google&rsquo;s <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> and
+            {' '}<a href="https://maps.google.com/help/terms_maps/" target="_blank" rel="noopener noreferrer">Google Maps terms</a> apply to this optional feature.
           </p>
         </div>
 

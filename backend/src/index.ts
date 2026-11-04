@@ -21,6 +21,7 @@ import {
   Workout
 } from './workoutParser.js';
 import { createTerrainTileService } from './terrainTiles.js';
+import { createNearbyPhotosRouter } from './nearbyPhotos.js';
 
 // Get directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -70,6 +71,8 @@ app.get('/api/status', (_req, res) => {
     message: 'ANT+ USB handled via WebUSB in browser',
   });
 });
+
+app.use('/api/nearby-photos', createNearbyPhotosRouter());
 
 // ===== WORKOUTS API =====
 

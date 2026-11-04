@@ -430,3 +430,23 @@ open-ride-app/
 ## License
 
 [MIT](LICENSE)
+
+### Nearby route photos (optional)
+
+Route rides can show nearby Google Places photos with place names, straight-line distances,
+photographer attribution, and links to Google Maps. Select **Show nearby photos** on the
+route screen to enable them for the current visit. Searches refresh every 500 metres;
+the route position is shared with Google, and images load from Google in the browser.
+
+Set `GOOGLE_PLACES_API_KEY` in the backend environment (or `backend/.env`) and restart the
+backend. Enable **Places API (New)** and billing in the Google Cloud project. Use a server
+key restricted to Places API and your server's outbound IP addresses; never prefix it with
+`VITE_` or commit it. Nearby Search requests include photo fields and can incur Google fees.
+Configure project quotas and billing alerts before public hosting. The backend imposes a
+shared limit of 60 photo/search requests per minute per process. Photo references live only
+in memory for five minutes; photos are not cached on disk. Without a key, the panel shows
+an unavailable message and route riding remains usable.
+
+Allow backend egress to `places.googleapis.com`, and browser images from
+`*.googleusercontent.com` and `*.gstatic.com` in the hosting network/CSP configuration.
+Development and static hosting CSP templates include those image domains.
