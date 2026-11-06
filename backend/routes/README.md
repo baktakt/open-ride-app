@@ -18,7 +18,7 @@ Elevation is sampled from [Mapzen/AWS Terrain Tiles](https://registry.opendata.a
 
 ## Narration and sources
 
-The scripts are short, editorially curated, AI-assisted summaries, not verbatim source recordings. Source links are retained on each stop. The Whitechapel guide is non-graphic and focuses on victims, the East End and uncertainty rather than unproven claims about the killer. The Hollywood guide uses historic sites, house museums and public landmarks, not current private celebrity residences.
+The scripts are short, editorially curated, AI-assisted summaries, not verbatim source recordings. There are 48 chapters across the five rides, with opening and closing stories and quiet stretches between them. Source links are retained on each stop. The Whitechapel guide is non-graphic and focuses on victims, the East End and uncertainty rather than unproven claims about the killer. The Hollywood guide uses historic sites, house museums and public landmarks, not current private celebrity residences.
 
 Primary references include:
 
@@ -39,7 +39,8 @@ Audio is AI-generated locally using [Kokoro-82M v1.0](https://huggingface.co/onn
 ## Maintenance
 
 1. `python3 scripts/build-starter-routes.py` from the repository root (requires Pillow; it downloads public routing/terrain data into an ignored cache).
-2. `node scripts/render-starter-guides.mjs` (uses the installed frontend Kokoro dependencies and downloads the model once).
-3. Run backend tests, which validate tracks, fingerprints, durations, sources and recording completeness.
+2. `python3 scripts/curate-starter-stories.py` applies the reviewed chapters to that geometry.
+3. `node scripts/render-starter-guides.mjs` (uses the installed frontend Kokoro dependencies and downloads the model once).
+4. Run backend tests, which validate tracks, fingerprints, durations, sources and recording completeness.
 
 Changing route geometry invalidates its route fingerprint. Script text changes invalidate the matching WAV via its checksum. Re-run rendering after rebuilding the route manifest to calculate the JavaScript-compatible fingerprints. Check all historical claims and routes before publishing a revised collection. Keep these assets included in backend deployments; `backend/vercel.json` explicitly includes them.
