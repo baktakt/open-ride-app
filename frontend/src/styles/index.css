@@ -1975,3 +1975,29 @@ h1, h2, h3, h4 {
 .route-dialog-delete { background: #c93445; color: #fff; }
 .route-dialog-save { background: var(--primary-blue); color: #071421; }
 .route-dialog-actions button:disabled { opacity: 0.6; cursor: wait; }
+
+.public-route-preview { position: relative; color: #48ddd0; background: linear-gradient(135deg, #14394a, #13273f); }
+.public-route-preview svg { width: 100%; height: 100%; }
+.public-route-preview > span { position: absolute; top: 14px; left: 14px; border: 1px solid #ffffff38; border-radius: 20px; padding: 5px 9px; font-size: .65rem; color: #e1f9f7; background: #061b28aa; }
+.theme-Classic\ climb .public-route-preview { color: #e6be77; }
+.public-route-note { color: #e7c28c; font-size: .7rem; line-height: 1.4; }
+.public-route-caption { color: #59d9ca; font-size: .7rem; margin-top: 10px; }
+.public-route-context { padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 5px 16px; background: #112739; border-radius: 8px; font-size: .75rem; color: #bad3e1; }
+.public-route-context strong { font-weight: 500; }
+.public-route-context small { width: 100%; color: #91aebd; }
+.prepared-guide-dialog > label { margin: 12px 0; }
+.prepared-guide-dialog > label textarea, .prepared-guide-dialog input[type=number], .prepared-guide-dialog input[readonly] { background: #10273b; border: 1px solid #49677e; color: #fff; padding: 10px; border-radius: 6px; font: inherit; width: 100%; box-sizing: border-box; }
+
+.public-route-explore > h2 { margin: 26px 0 10px; }
+.public-route-explore > p { color: #b1c5d6; line-height: 1.6; max-width: 760px; margin-bottom: 24px; }
+
+.theme-film-architecture .public-route-preview { color: #ddb0f7; background: linear-gradient(135deg, #3c254a, #13273f); }
+.theme-ancient-history .public-route-preview { color: #f1c697; background: linear-gradient(135deg, #46332a, #13273f); }
+.theme-history-mystery .public-route-preview { color: #9fbee9; background: linear-gradient(135deg, #253252, #13273f); }
+.theme-classic-climb .public-route-preview { color: #9de0b5; background: linear-gradient(135deg, #244436, #13273f); }
+
+.route-sidebar .public-route-context { display: block; padding: 8px; max-height: 180px; overflow-y: auto; font-size: .72rem; line-height: 1.5; }
+.public-route-context summary { cursor: pointer; color: #8dd9d1; }
+.public-route-context p { margin: 8px 0; }
+.public-route-context small { display: block; font-size: .65rem; }
+.public-route-context a { display: inline-block; margin-top: 6px; color: #9edce8; }

@@ -22,6 +22,8 @@ import {
 } from './workoutParser.js';
 import { createTerrainTileService } from './terrainTiles.js';
 import { createNearbyPhotosRouter } from './nearbyPhotos.js';
+import { createPublicRoutesRouter } from './publicRoutes.js';
+import { createGuidePhotosRouter } from './guidePhotos.js';
 
 // Get directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -50,6 +52,8 @@ app.use((_req, res, next) => {
   next();
 });
 
+app.options('/api/public-routes/{*path}', (_req, res) => { res.sendStatus(204); });
+
 // Security headers
 app.use((_req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
@@ -73,6 +77,9 @@ app.get('/api/status', (_req, res) => {
 });
 
 app.use('/api/nearby-photos', createNearbyPhotosRouter());
+app.use('/api/guide-photos', createGuidePhotosRouter());
+app.use('/api/prepared-guides', (_req, res) => { res.status(410).json({ error: 'Personal routes and guides now stay on your device.' }); });
+app.use('/api/public-routes', createPublicRoutesRouter());
 
 // ===== WORKOUTS API =====
 

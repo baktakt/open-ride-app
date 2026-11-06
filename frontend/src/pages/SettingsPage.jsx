@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
+import { openDB } from '../services/db';
 import { loadAiSettings, saveAiSettings } from '../services/aiWorkoutGenerator';
 import { downloadExport, importFromFile, loadCustomWorkouts } from '../services/dataManager';
 import '../styles/settings.css';
@@ -149,9 +150,20 @@ export default function SettingsPage() {
     });
   };
 
-  const handleClearAllData = () => {
-    localStorage.clear();
-    window.location.reload();
+  const handleClearAllData = async () => {
+    try {
+      const db = await openDB();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction([...db.objectStoreNames], 'readwrite');
+        for (const name of db.objectStoreNames) tx.objectStore(name).clear();
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => reject(tx.error);
+      });
+      localStorage.clear();
+      window.location.reload();
+    } catch {
+      setShowClearConfirm(false); setImportStatus('error'); setImportMessage('Could not clear saved data. Close other Open Ride tabs and try again.');
+    }
   };
 
   const handleEmulatorToggle = () => {
@@ -426,14 +438,14 @@ export default function SettingsPage() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
                 </svg>
-                <h2>AI Workout Generator</h2>
+                <h2>AI workouts (optional)</h2>
               </div>
 
               <div className="settings-card">
                 <div className="setting-row">
                   <div className="setting-info">
-                    <label htmlFor="ai-provider">AI Provider</label>
-                    <p className="setting-description">Which LLM provider to use for generating workouts.</p>
+                    <label htmlFor="ai-provider">AI provider</label>
+                    <p className="setting-description">Choose a provider for generating your own workouts. Curated route guides include audio and need no AI key.</p>
                   </div>
                   <div className="setting-input">
                     <select
@@ -441,8 +453,8 @@ export default function SettingsPage() {
                       value={aiSettings.provider}
                       onChange={(e) => setAiSettings(prev => ({ ...prev, provider: e.target.value }))}
                     >
-                      <option value="openai">OpenAI (GPT-4o mini)</option>
-                      <option value="anthropic">Anthropic (Claude Haiku)</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic</option>
                     </select>
                   </div>
                 </div>
@@ -451,7 +463,7 @@ export default function SettingsPage() {
                   <div className="setting-info">
                     <label htmlFor="ai-api-key">API Key</label>
                     <p className="setting-description">
-                      Your API key is stored only in your browser and sent directly to the AI provider.
+                      Used by the selected AI provider. Your key stays in this browser and is sent directly to that provider. AI features are optional; API usage is billed by your provider.
                       It is never transmitted to Open Ride servers.
                     </p>
                   </div>
@@ -535,8 +547,8 @@ export default function SettingsPage() {
                     <p className="setting-label-text">Export All Riders</p>
                     <p className="setting-description">
                       Download every rider profile, settings, ride history, training programs, custom workouts,
-                      saved GPX routes and detailed ride recordings in one backup.
-                      <strong> Your API key is not included.</strong>
+                      saved GPX routes, downloaded route narration and detailed ride recordings in one backup.
+                      <strong> AI API keys are not included. Downloaded route narration is included.</strong>
                     </p>
                   </div>
                   <button
@@ -561,7 +573,7 @@ export default function SettingsPage() {
                     <p className="setting-label-text">Import Data</p>
                     <p className="setting-description">
                       Full backups replace all riders and their saved data on this device. Older backups restore only the current rider’s data.
-                      Your API key will not be restored — re-enter it after import.
+                      AI API keys are excluded. Add one only if you use AI workout generation.
                     </p>
                   </div>
                   <label className="btn-secondary data-mgmt-btn data-mgmt-import-label">

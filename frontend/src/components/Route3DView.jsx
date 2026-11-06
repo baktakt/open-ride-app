@@ -10,6 +10,35 @@ const EYE_HEIGHT_M = 1.7;
 const LOOK_AHEAD_M = 24;
 const TREE_COUNT = 2500;
 
+function makeGuideSprite(stop, path) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 144;
+  const ctx = canvas.getContext('2d');
+  const color = stop.status === 'active' ? '#13b7a6' : '#8150ce';
+  ctx.fillStyle = '#101a2eef';
+  ctx.fillRect(0, 0, 512, 132);
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 8, 132);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.fillText(stop.status === 'active' ? 'TOUR GUIDE · NOW' : stop.members?.length > 1 ? `TOUR GUIDE · ${stop.members.length} STORIES` : 'TOUR GUIDE · AHEAD', 24, 42);
+  ctx.font = '30px sans-serif';
+  let title = stop.landmark.title;
+  while (ctx.measureText(title).width > 450 && title.length > 1) title = title.slice(0, -1);
+  ctx.fillText(title === stop.landmark.title ? title : `${title.slice(0, -1)}…`, 24, 92);
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(246, 132); ctx.lineTo(266, 132); ctx.lineTo(256, 144); ctx.fill();
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, sizeAttenuation: false, depthTest: true, transparent: true, depthWrite: false }));
+  // Put the sign just beyond the trigger so it is visible as the rider reaches it.
+  const point = pointAt(path, Math.min(path.length, stop.distanceKm * 1000 + 20));
+  sprite.position.set(point.x, point.y + 2.5, point.z);
+  sprite.center.set(0.5, 0);
+  return sprite;
+}
+
 // Terrain colours, blended by relative height and slope
 const MEADOW = new THREE.Color(0x7a9a52);
 const FOREST = new THREE.Color(0x46663a);
@@ -117,12 +146,14 @@ function buildFinishArch(path) {
  * @param {object}   telemetryRef  ref holding live telemetry ({ speed } in km/h)
  * @param {boolean}  isRiding
  */
-export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, isRiding }) {
+export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, isRiding, tourStops }) {
   const containerRef = useRef(null);
   const isRidingRef = useRef(isRiding);
   const [status, setStatus] = useState({ state: 'loading' });
   const [cameraMode, setCameraMode] = useState('rider');
   const cameraModeRef = useRef(cameraMode);
+  const tourStopsRef = useRef(tourStops);
+  useEffect(() => { tourStopsRef.current = tourStops; }, [tourStops]);
   useEffect(() => { cameraModeRef.current = cameraMode; }, [cameraMode]);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -138,6 +169,15 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
     let frame = 0;
     let renderer = null;
     let resizeObserver = null;
+    let guideSprites = [];
+    const clearGuideSprites = () => {
+      for (const sprite of guideSprites) {
+        sprite.removeFromParent();
+        sprite.material.map.dispose();
+        sprite.material.dispose();
+      }
+      guideSprites = [];
+    };
     setStatus({ state: 'loading' });
 
     (async () => {
@@ -282,7 +322,9 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
       const lookDirection = new THREE.Vector3();
       const lookTarget = new THREE.Vector3();
       const desiredLook = new THREE.Vector3();
+      const viewDirection = new THREE.Vector3();
       let firstFrame = true;
+      let previousStops = null;
 
       const tick = (now) => {
         const dt = Math.min(0.1, (now - last) / 1000);
@@ -314,6 +356,27 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
         firstFrame = false;
         camera.lookAt(lookTarget);
 
+        if (previousStops !== tourStopsRef.current) {
+          clearGuideSprites();
+          previousStops = tourStopsRef.current;
+          for (const stop of previousStops || []) {
+            if (stop.status === 'heard') continue;
+            const sprite = makeGuideSprite(stop, path);
+            sprite.userData.distanceM = stop.distanceKm * 1000;
+            scene.add(sprite);
+            guideSprites.push(sprite);
+          }
+        }
+        camera.getWorldDirection(viewDirection);
+        for (const sprite of guideSprites) {
+          const aheadM = sprite.userData.distanceM - shownM;
+          const depth = (sprite.position.x - camera.position.x) * viewDirection.x + (sprite.position.y - camera.position.y) * viewDirection.y + (sprite.position.z - camera.position.z) * viewDirection.z;
+          sprite.visible = depth > 0 && aheadM >= -25 && aheadM <= 1200;
+          const pixelWidth = Math.min(220, container.clientWidth * 0.35);
+          const width = Math.max(0.001, 2 * Math.tan(camera.fov * Math.PI / 360) * pixelWidth / Math.max(1, container.clientHeight));
+          sprite.scale.set(width, width * 144 / 512, 1);
+        }
+
         renderer.render(scene, camera);
         frame = requestAnimationFrame(tick);
       };
@@ -325,6 +388,7 @@ export default function Route3DView({ routePoints, distanceKmRef, telemetryRef, 
       abort.abort();
       cancelAnimationFrame(frame);
       resizeObserver?.disconnect();
+      clearGuideSprites();
       new Set(disposables).forEach(item => item.dispose());
       if (renderer) {
         renderer.dispose();

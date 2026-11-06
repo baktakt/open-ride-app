@@ -13,8 +13,9 @@
 import { getActiveUserId } from './userManager.js';
 
 const DB_NAME    = 'openride';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
+export const GUIDES_STORE = 'routeGuides';
 export const ROUTES_STORE = 'routes';
 export const RIDES_STORE  = 'rides';
 export const RIDES_BY_USER_INDEX = 'userId';
@@ -48,6 +49,8 @@ export function openDB() {
         }
       }
 
+      if (!db.objectStoreNames.contains(GUIDES_STORE)) db.createObjectStore(GUIDES_STORE, { keyPath: 'id' });
+
       // v2 → v3: ride recordings
       if (!db.objectStoreNames.contains(RIDES_STORE)) {
         const rides = db.createObjectStore(RIDES_STORE, { keyPath: 'id' });
@@ -55,7 +58,11 @@ export function openDB() {
       }
     };
 
-    req.onsuccess = (e) => resolve(e.target.result);
+    req.onsuccess = (e) => {
+      e.target.result.onversionchange = () => e.target.result.close();
+      resolve(e.target.result);
+    };
+    req.onblocked = () => reject(new Error('Close other Open Ride tabs and reload to upgrade saved guides.'));
     req.onerror   = (e) => reject(e.target.error);
   });
 }
