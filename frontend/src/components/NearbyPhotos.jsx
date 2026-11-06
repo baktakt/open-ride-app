@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { positionAt } from '../services/routeProfile';
+import GuidePhotos from './GuidePhotos';
 import { readNearbyPhotos } from '../services/nearbyPhotos';
 
 function distanceM(a, b) {
@@ -11,20 +12,23 @@ function safeLink(value) {
   try { const url = new URL(value); return url.protocol === 'https:' ? url.href : undefined; } catch { return undefined; }
 }
 
-export default function NearbyPhotos({ routePoints, distanceKm }) {
+export default function NearbyPhotos({ routePoints, distanceKm, onPlacesChange, guide }) {
+  const guidePhotosActive = guide?.hasGuide;
   const [enabled, setEnabled] = useState(false);
   const [result, setResult] = useState({ state: 'idle', places: [] });
   const [retry, setRetry] = useState(0);
   // Refresh every 500 m, rather than on every telemetry tick. No GPX file is sent.
   const section = Math.floor(distanceKm / 0.5);
-  const searchPosition = useMemo(() => positionAt(routePoints, section * 0.5), [routePoints, section]);
+  const searchPosition = useMemo(() => positionAt(routePoints, section * 0.5 + 0.5), [routePoints, section]);
   const currentPosition = positionAt(routePoints, distanceKm);
   const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+
+  useEffect(() => { if (!guidePhotosActive) onPlacesChange?.(enabled ? result.places : []); }, [enabled, result.places, onPlacesChange, guidePhotosActive]);
 
   useEffect(() => {
     if (!enabled || !searchPosition) return undefined;
     const controller = new AbortController();
-    setResult({ state: 'loading', places: [] });
+    setResult(previous => ({ ...previous, state: 'loading' }));
     fetch(`${apiBase}/api/nearby-photos?lat=${searchPosition.lat}&lng=${searchPosition.lng}`, { signal: controller.signal })
       .then(async response => {
         const data = await readNearbyPhotos(response);
@@ -34,6 +38,7 @@ export default function NearbyPhotos({ routePoints, distanceKm }) {
     return () => controller.abort();
   }, [enabled, searchPosition, retry, apiBase]);
 
+  if (guidePhotosActive) return <GuidePhotos guide={{ ...guide, stops: guide.stops.length ? guide.stops : guide.allStops }} distanceKm={distanceKm} onPlacesChange={onPlacesChange} />;
   return <section className="nearby-photos" aria-label="Nearby place photos">
     <div className="nearby-photos-heading"><h2>Nearby places</h2>
       {enabled && <button type="button" onClick={() => { setEnabled(false); setResult({ state: 'idle', places: [] }); }}>Hide photos</button>}

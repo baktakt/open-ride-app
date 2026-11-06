@@ -93,7 +93,20 @@ export default function PrivacyPolicyPage() {
             map tile coordinates only &mdash; not your route, ride data or any identifier.
           </p>
           <p>
-            When you select &ldquo;Show nearby photos&rdquo;, the current position along your
+            Curated routes include prerecorded guide audio. Listening and reading captions
+            require no AI key and make no AI requests. Audio downloads from Open Ride and
+            is cached in this browser for later rides. Guide photo topics are looked up through
+            Wikipedia and Wikimedia Commons via the backend. Images load directly from
+            Wikimedia, which receives your browser IP address; photographer and licence
+            credits link to Commons. Hide photos stops further photo requests.
+          </p>
+          <p>
+            Imported GPX routes stay on this device. Open Ride provides no personal-route
+            publishing, guide-generation or cloud-save flow. Backups include saved routes
+            and downloaded guide audio. Clear browser data to remove local copies.
+          </p>
+          <p>
+            When you select &ldquo;Show nearby photos&rdquo;, an area about 500 metres ahead along your
             GPX route is sent through the backend to Google Places to find nearby place photos.
             Searches refresh approximately every 500 metres. Your full GPX file and health
             measurements are not sent. Photos and Google attribution images load directly

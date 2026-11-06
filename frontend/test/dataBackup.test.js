@@ -90,3 +90,26 @@ test('legacy backup still restores current rider without replacing the rider lis
   assert.equal(JSON.parse(storage.getItem('openride_custom_workouts'))[0].id, 'legacy');
   await assert.rejects(applyImport({ version: 99, data: {} }), /Unsupported/);
 });
+
+test('prepared guides round trip with audio and ownership but exclude private cloud keys', async () => {
+  const { storage, records } = fixture();
+  const hash = 'a'.repeat(64);
+  const stopId = '11111111-1111-4111-8111-111111111111';
+  records.guides = [{ id: `a:${hash}:en`, userId: 'a', cloud: { secret: 'private-access' }, guide: { version: 1, id: 'guide', routeName: 'Ride', routeHash: hash, language: 'en', stops: [{ id: stopId, title: 'Bridge', text: 'A historic bridge.', distanceKm: 1, lat: 0, lng: 0, sources: [{ title: 'Bridge', url: 'https://en.wikipedia.org/?curid=1' }] }] }, clips: { [stopId]: new Blob(['saved-audio']) } }];
+  const payload = await buildFullBackup({ storage, readDatabase: async () => records });
+  assert.ok(!JSON.stringify(payload).includes('private-access'));
+  let restored;
+  await restoreFullBackup(payload, { storage, writeDatabase: async (data, applyLocal) => { restored = data; applyLocal(); } });
+  assert.equal(await restored.guides[0].clips[stopId].text(), 'saved-audio');
+  assert.equal(restored.guides[0].userId, 'a');
+  const invalid = structuredClone(payload); invalid.guides[0].userId = 'missing-profile';
+  await assert.rejects(restoreFullBackup(invalid), /ownership/);
+});
+
+test('public route backups do not export publishing credentials', async () => {
+  const { storage, records } = fixture();
+  records.routes[0].publication = { id: 'public-id', secret: 'owner-secret', publishedAt: '2026-11-05' };
+  const payload = await buildFullBackup({ storage, readDatabase: async () => records });
+  assert.equal(payload.routes[0].publication.id, 'public-id');
+  assert.equal(payload.routes[0].publication.secret, undefined);
+});

@@ -858,6 +858,7 @@
   .route-map-section > .map-wrapper:only-child { grid-column: 1 / -1; grid-row: 1 / -1; }
 }
 .route-rider-marker {
+  box-sizing: border-box;
   display: grid;
   place-items: center;
   color: #fff;
@@ -868,12 +869,109 @@
 }
 
 .route-rider-marker svg {
-  width: 34px;
-  height: 34px;
+  display: block;
+  width: 32px;
+  height: 32px;
 }
 
 .route-workout-link {
   color: var(--primary-blue);
   font-size: 0.85rem;
   text-decoration: none;
+}
+.tour-guide-subtitles {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050;
+  width: min(680px, calc(100% - 32px));
+  box-sizing: border-box;
+  padding: 16px 20px;
+  border: 1px solid #ffffff30;
+  border-radius: 12px;
+  background: #081321e8;
+  color: #fff;
+  box-shadow: 0 4px 24px #0006;
+}
+
+.tour-guide-caption-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.tour-guide-caption-heading strong { font-size: 1rem; overflow-wrap: anywhere; }
+.tour-guide-caption-heading span { color: #8fdedc; font-size: 0.75rem; flex-shrink: 0; }
+.tour-guide-subtitles p { font-size: clamp(1rem, 1.4vw, 1.3rem); line-height: 1.5; margin: 8px 0 10px; }
+.tour-guide-source { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.tour-guide-source a { color: #aec4d9; font-size: 0.65rem; }
+
+@media (max-width: 600px) {
+  .tour-guide-subtitles { padding: 12px; }
+}
+.route-place-marker {
+  box-sizing: border-box;
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+.route-place-marker .route-place-pin {
+  display: block;
+  width: 36px;
+  height: 44px;
+  overflow: visible;
+  filter: drop-shadow(0 2px 3px #0006);
+}
+.route-place-pin-body { fill: #167ab3; }
+.route-place-marker--guide .route-place-pin-body { fill: #8150ce; }
+.route-place-marker--active .route-place-pin-body { fill: #0aab95; }
+.route-place-marker--heard .route-place-pin-body { fill: #667080; }
+.route-place-marker--heard { opacity: 0.7; }
+.route-marker-legend { position: absolute; left: 10px; bottom: 10px; z-index: 1000; display: flex; gap: 12px; padding: 6px 10px; background: #101b2be8; border-radius: 6px; color: #fff; font-size: 0.7rem; pointer-events: none; }
+.route-marker-legend span { display: flex; align-items: center; gap: 5px; }
+.route-marker-legend i { width: 9px; height: 9px; border: 1px solid #fff; border-radius: 50%; background: #8150ce; }
+.route-marker-legend .photo-dot { background: #167ab3; }
+
+.guide-photo-active { outline: 2px solid #36dbc1; outline-offset: -2px; }
+.nearby-photo figcaption > strong { color: #7cf2df; font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; }
+.guide-photo-credit { color: #9db4c8; font-size: .65rem; margin-top: 8px; }
+
+/* A curated ride is ready to listen; personal routes keep their local, photo-led experience. */
+.ride-guide-setup { padding: 12px 0; text-align: left; border-top: 1px solid #ffffff20; }
+.ride-guide-setup label { display: flex; align-items: center; gap: 9px; color: #f0f8ff; font-size: .9rem; font-weight: 600; cursor: pointer; }
+.ride-guide-setup input { width: 19px; height: 19px; accent-color: #00c9a6; flex-shrink: 0; }
+.ride-guide-setup p { margin: 7px 0; font-size: .8rem; color: #c6d7e7; line-height: 1.45; }
+.ride-guide-setup small { display: block; color: #95acbf; font-size: .7rem; line-height: 1.45; margin: 5px 0; }
+.route-controls .guide-preview-button { background: transparent; border: 1px solid #506d85; color: #b9e9ed; padding: 7px; margin: 7px 0 3px; font-size: .75rem; width: 100%; min-height: 34px; }
+.personal-route-note { color: #96adc2; font-size: .75rem; line-height: 1.5; margin: 10px 0; }
+.tour-guide-milestone { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 1000; width: min(390px, calc(100% - 190px)); padding: 12px 16px; border: 1px solid #77e4d044; border-radius: 12px; background: #0e2034ed; color: #fff; text-align: center; display: grid; gap: 5px; pointer-events: none; box-shadow: 0 3px 16px #0003; }
+.tour-guide-milestone .story-collection { color: #69e7c9; font-size: .65rem; text-transform: uppercase; letter-spacing: .07em; }
+.tour-guide-milestone strong { font-size: .9rem; line-height: 1.35; }
+.tour-guide-milestone > span:last-of-type { color: #b4c7db; font-size: .75rem; }
+.tour-guide-milestone progress { width: 100%; height: 5px; accent-color: #3bdab9; border: 0; border-radius: 5px; overflow: hidden; margin-top: 4px; }
+.tour-guide-milestone progress::-webkit-progress-bar { background: #ffffff22; }
+.tour-guide-milestone progress::-webkit-progress-value { background: #3bdab9; }
+.tour-guide-subtitles { width: min(620px, calc(100% - 32px)); padding: 12px 16px; }
+.tour-guide-subtitles p { font-size: clamp(.95rem, 1.3vw, 1.2rem); line-height: 1.4; margin: 8px 0 3px; }
+.tour-guide-caption-heading strong { font-size: .8rem; color: #c8dbe9; }
+.tour-guide-caption-heading span { font-size: .65rem; color: #69e7c9; }
+.tour-guide-story-source { color: #93aabd; font-size: .6rem; }
+.guide-photo-grid .nearby-photo > img { width: 100%; object-fit: cover; }
+@media (min-width: 1000px) and (min-height: 600px) {
+  .guide-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 2.2fr) minmax(0, 1fr); grid-auto-rows: unset; }
+  .guide-photo-featured { grid-column: 1 / -1; }
+  .guide-photo-grid .nearby-photo:not(.guide-photo-featured) figcaption { padding: 24px 6px 7px; }
+  .guide-photo-grid .nearby-photo:not(.guide-photo-featured) figcaption > a { font-size: .7rem; }
+  .guide-photo-grid .nearby-photo:not(.guide-photo-featured) figcaption > span { font-size: .55rem; }
+  .route-sidebar { overflow-y: auto; }
+}
+@media (max-width: 600px) {
+  .tour-guide-milestone { top: 52px; width: calc(100% - 70px); padding: 9px 12px; }
+  .tour-guide-caption-heading { flex-wrap: wrap; gap: 4px; }
+}
+@media (min-width: 1000px) and (min-height: 600px) {
+  .guide-photo-count-1 { grid-template-rows: minmax(0, 1fr); }
+  .guide-photo-count-2 .nearby-photo:last-child { grid-column: 1 / -1; }
+}
+@media (min-width: 1000px) and (min-height: 600px) {
+  .is-riding .route-stats-grid .route-stat:nth-child(n+3), .is-riding .public-route-context { display: none; }
+  .route-sidebar > * { flex-shrink: 0; }
+  .route-controls { position: sticky; bottom: 0; background: #1a1a2e; }
+  .ride-guide-active { padding: 8px 0; }
 }

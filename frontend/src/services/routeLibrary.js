@@ -8,15 +8,15 @@
  * can be several hundred KB each, and users may store many routes.
  */
 
-import { getActiveUserId } from './userManager';
-import { openDB, ROUTES_STORE as STORE_NAME } from './db';
+import { getActiveUserId } from './userManager.js';
+import { openDB, ROUTES_STORE as STORE_NAME } from './db.js';
 
 /**
  * Save (or overwrite) a route in the library.
  * If entry.id is omitted a new unique id is generated.
  * Returns the stored entry.
  */
-export async function saveRoute({ id, name, points, totalDistance, elevationGain, minEle, maxEle }) {
+export async function saveRoute({ id, name, points, totalDistance, elevationGain, minEle, maxEle, description, estimatedMinutes, publicSource, curated, guide, routeHash, attribution, contentNote, paceNote, sources }) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx    = db.transaction(STORE_NAME, 'readwrite');
@@ -30,6 +30,7 @@ export async function saveRoute({ id, name, points, totalDistance, elevationGain
       minEle,
       maxEle,
       createdAt:     new Date().toISOString(),
+      description, estimatedMinutes, publicSource, curated, guide, routeHash, attribution, contentNote, paceNote, sources,
       userId:        getActiveUserId(),
     };
     store.put(entry);

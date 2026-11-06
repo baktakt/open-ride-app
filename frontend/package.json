@@ -7,14 +7,15 @@
     "ant-plus-next": "^0.4.0",
     "events": "^3.3.0",
     "leaflet": "^1.9.4",
-    "react-leaflet": "^5.0.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.5",
     "three": "^0.186.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",
+    "kokoro-js": "^1.2.1",
     "vite": "^8.3.5"
   },
   "scripts": {
@@ -22,5 +23,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test"
+  },
+  "overrides": {
+    "sharp": "^0.35.5"
   }
 }

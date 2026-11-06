@@ -20,10 +20,11 @@ export default function RouteWorkoutCard({ route, onRename, onDelete }) {
         </svg>
       </div>
       <div className="workout-card-content">
-        <div className="workout-type">Route workout</div>
+        <div className="workout-type">{route.curated ? 'Curated ride · Audio included' : 'Personal route · On this device'}</div>
         <h3 className="workout-title">{route.name}</h3>
         <div className="workout-meta">{route.totalDistance.toFixed(1)} km · +{Math.round(route.elevationGain)} m climbing</div>
-        <p className="workout-description">Ride at your own pace. Trainer resistance follows the route elevation.</p>
+        <p className="workout-description">{route.curated ? route.description : 'Ride at your own pace. Trainer resistance follows the route elevation.'}</p>
+        {route.curated && route.guide && <p className="public-route-caption">{route.guide.stops.length} stories · ~{Math.round(route.guide.stops.reduce((sum, stop) => sum + (stop.audioSeconds || 0), 0) / 60)} min narration</p>}
       </div>
     </Link>
     {dialogMode && <RouteWorkoutDialog route={route} mode={dialogMode} onRename={onRename} onDelete={onDelete} onClose={() => setDialogMode(null)} />}

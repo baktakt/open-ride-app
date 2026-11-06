@@ -316,7 +316,53 @@ Progress along the route is tracked using your reported speed (from the trainer)
 
 **Storage:** Saved routes live in the browser's IndexedDB under the `openride` database, `routes` store. They are scoped per user profile. Route ride history (completed ride summaries) is stored in localStorage under `openride_route_history`.
 
-### 3D view
+### Curated story rides
+
+**Explore routes** contains Open Ride’s handpicked collection. Each ride includes
+7–12 reviewed chapters, prerecorded English narration, short captions and matching
+landmark photos. Cards show estimated ride time, story count and narration duration;
+quiet riding separates the chapters. All five rides have opening and closing stories,
+with chapter gaps of roughly eleven minutes or less at their stated reference pace.
+These are indoor interpretations, not outdoor navigation instructions or certified
+race courses. The Whitechapel ride is non-graphic and focuses on people and evidence.
+
+**Listen to the guide** is selected beside **Start Ride**. Start enables audio using
+that button’s browser gesture; there is no voice model setup or AI key requirement.
+Preview the opening before riding or turn narration off for a quiet ride. Between
+chapters a progress bar and distance countdown encourage pedalling toward the next
+story. Completed chapters count as explored stories. The current landmark photo is
+larger than the upcoming photo previews. Guide markers appear on the map and in 3D.
+
+Route geometry loads independently of narration. Audio downloads in the background,
+with each finished clip cached in IndexedDB. A changed editorial guide version replaces
+stale recordings. Pausing retains the current audio position. Compact caption cues use
+relative text lengths and the decoded clip duration, so timings are approximate rather
+than word-level alignment. Audio failures fall back to the complete story in short
+captions; the ride remains usable. Images are optional and require internet access.
+
+The collection is stored in `backend/routes/starter-routes.json` and its WAV files
+in `backend/routes/audio`. `/api/public-routes` exposes anonymous **read-only** access
+to these bundled routes and their audio. There is no community catalogue, publishing,
+or personal-route upload endpoint. Vercel Blob and AI keys are not needed to serve
+curated rides. Earlier cloud-guide endpoints are disabled.
+
+For editorial updates, keep the road geometry, update the sourced chapters in
+`scripts/curate-starter-stories.py`, run that script, then run
+`node scripts/render-starter-guides.mjs`. The rendering tool uses the local Kokoro
+model and requires no paid API call. It writes audio duration metadata and text
+checksums. `scripts/build-starter-routes.py` can rebuild geometry from OpenStreetMap
+routing and public terrain data; follow it with curation and rendering.
+
+### Personal GPX rides
+
+Use **Import GPX** to save a route on the current device. Personal routes support
+trainer resistance, map/3D views and optional nearby Google Places photos. They have
+no guide-generation, cloud-save or public-sharing controls. Selecting nearby photos
+shares the lookup area with Google through the backend, as described below; the
+full GPX, rider data and AI key are never uploaded. AI workout creation remains a
+separate optional feature in Settings.
+
+### 3D terrain
 
 Switch the route map to **3D** to ride the route in first person over the real terrain. Elevation comes from the backend (`/api/terrain/...`), which fetches and caches it, so the browser never contacts a map-data provider.
 
@@ -433,6 +479,16 @@ open-ride-app/
 ## License
 
 [MIT](LICENSE)
+
+### Guide landmark photos
+
+On a curated ride, the photo panel follows the current or most recently narrated
+landmark and preloads up to three upcoming places. `/api/guide-photos` looks up the exact
+Wikipedia article (or a curated starter-route topic), then retrieves a free image and its
+Commons photographer/licence credits. Unmatched topics show no photo rather than an
+unrelated business. Images load directly from `upload.wikimedia.org` or
+`thumb.wikimedia.org`, which receive the browser IP address. Hide photos stops further
+lookups and image loads. No Google key is needed for guide photos.
 
 ### Nearby route photos (optional)
 

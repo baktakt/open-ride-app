@@ -1,11 +1,14 @@
 import React, { Component, Suspense, lazy, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import L from 'leaflet';
+import { placeMarkerSvg, groupPhotoMarkers } from '../services/routeMapIcons';
 import { useAnt } from '../contexts/AntContext';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
 import RideGauges from '../components/RideGauges';
+import { importPublicRoute } from '../services/publicRoutes';
 import NearbyPhotos from '../components/NearbyPhotos';
+import { useTourGuide, TourGuideControls, TourGuideSubtitles, TourGuideProgress } from '../components/TourGuide';
 import { loadRoute } from '../services/routeLibrary';
 import { saveRouteRide } from '../services/dataManager';
 import { createRideRecorder } from '../services/rideRecorder';
@@ -14,6 +17,7 @@ import { buildRouteProfile, gradeAt, elevationAt, elevationGain, positionAt } fr
 import { saveRideFile } from '../services/rideFiles';
 import { downloadRide } from '../services/rideExport';
 import { createRouteMotion } from '../services/routeMotion';
+import { groupGuideStops } from '../services/tourGuide';
 import '../styles/route.css';
 
 // three.js is only downloaded when the 3D view is opened
@@ -165,11 +169,12 @@ function ElevationCanvas({ routePoints, routeStats, currentIndex, isRiding }) {
 
 // ── Leaflet map ───────────────────────────────────────────────────────────────
 
-function RouteMap({ routePoints, distanceKm, distanceKmRef, telemetryRef, isFollowing }) {
+function RouteMap({ routePoints, distanceKm, distanceKmRef, telemetryRef, isFollowing, tourStops, photoPlaces }) {
   const containerRef = useRef(null);
   const mapRef       = useRef(null);
   const polylineRef  = useRef(null);
   const markerRef    = useRef(null);
+
 
   useEffect(() => {
     const container = containerRef.current;
@@ -190,6 +195,34 @@ function RouteMap({ routePoints, distanceKm, distanceKmRef, telemetryRef, isFoll
       markerRef.current   = null;
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return undefined;
+    const layer = L.layerGroup().addTo(map);
+    const addMarker = (lat, lng, title, type, status = 'upcoming', count = 1) => {
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const label = document.createElement('span');
+      label.textContent = title;
+      L.marker([lat, lng], {
+        title, alt: title, zIndexOffset: type === 'guide' ? 400 : 200,
+        icon: L.divIcon({
+          className: `route-place-marker route-place-marker--${type} route-place-marker--${status}`,
+          iconSize: [36, 44], iconAnchor: [18, 42], tooltipAnchor: [0, -38],
+          html: placeMarkerSvg(type, count),
+        }),
+      }).bindTooltip(label, { direction: 'top' }).addTo(layer);
+    };
+    const refresh = () => {
+      layer.clearLayers();
+      for (const stop of tourStops) addMarker(stop.lat, stop.lng, `Tour guide: ${stop.label} · ${stop.status}`, 'guide', stop.status);
+      const groups = groupPhotoMarkers(photoPlaces, (lat, lng) => map.latLngToContainerPoint([lat, lng]));
+      for (const group of groups) addMarker(group.lat, group.lng, `Photos: ${group.places.map(place => place.name).join(' · ')}`, 'photo', 'upcoming', group.places.length);
+    };
+    refresh();
+    map.on('zoomend', refresh);
+    return () => { map.off('zoomend', refresh); layer.remove(); };
+  }, [tourStops, photoPlaces]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -294,7 +327,10 @@ export default function RoutePage() {
   const [routeName,   setRouteName]   = useState(() => loadSavedRoute()?.name   ?? '');
   const [routeId,     setRouteId]     = useState(() => loadSavedRoute()?.id     ?? null);
 
+  const [publicLoading, setPublicLoading] = useState('');
+  const [publicInfo, setPublicInfo] = useState(() => { const saved = loadSavedRoute(); const requested = searchParams.get('routeId'); return !searchParams.has('publicRoute') && (!requested || requested === saved?.id) && saved?.curated ? saved : null; });
   const [routeError, setRouteError] = useState(null);
+  const [photoPlaces, setPhotoPlaces] = useState([]);
 
   // Ride state
   const [isRiding,      setIsRiding]      = useState(false);
@@ -303,6 +339,8 @@ export default function RoutePage() {
   const [liveStats,     setLiveStats]     = useState({ distanceRidden: 0, ele: 0, grade: 0, duration: 0 });
 
   // Map panel: 2D map or 3D first-person view
+  const guide = useTourGuide({ route: publicInfo, distanceKm: liveStats.distanceRidden, isRiding, isPaused });
+  const guideMarkers = useMemo(() => groupGuideStops(guide.stops), [guide.stops]);
   const [viewMode, setViewMode] = useState('map'); // 'map' | '3d'
 
   // Completion summary
@@ -334,13 +372,29 @@ export default function RoutePage() {
   useEffect(() => { routeNameRef.current   = routeName;   }, [routeName]);
   useEffect(() => { routeIdRef.current     = routeId;     }, [routeId]);
 
+  useEffect(() => {
+    const id = searchParams.get('publicRoute');
+    if (!id) return;
+    const controller = new AbortController();
+    setPublicInfo(null); setRoutePoints([]); setRouteError(null); setPublicLoading('Loading public route…');
+    importPublicRoute(id, { apiBase: import.meta.env.VITE_API_BASE_URL || '', signal: controller.signal, onProgress: setPublicLoading }).then(route => {
+      if (controller.signal.aborted) return;
+      setRoutePoints(route.points); setRouteName(route.name); setRouteId(route.id); setPublicInfo(route); setPublicLoading('');
+    }).catch(error => { if (!controller.signal.aborted) { setRouteError(error.message); setPublicLoading(''); } });
+    return () => controller.abort();
+  }, [searchParams]);
+
   // Load a specific route requested via ?routeId= (e.g. from Training Program)
   useEffect(() => {
     const requestedId = searchParams.get('routeId');
-    if (!requestedId) return;
+    if (!requestedId || searchParams.get('publicRoute')) return;
     loadRoute(requestedId).then(entry => {
       if (!entry) { setRouteError('This route is no longer available. Choose a route from the workout list.'); setRoutePoints([]); return; }
       setRouteError(null);
+      setPublicInfo(entry.curated ? entry : null);
+      if (entry.publicSource) {
+        importPublicRoute(entry.publicSource, { apiBase: import.meta.env.VITE_API_BASE_URL || '' }).then(setPublicInfo).catch(() => {});
+      }
       setRoutePoints(entry.points);
       setRouteName(entry.name);
       setRouteId(entry.id);
@@ -354,9 +408,9 @@ export default function RoutePage() {
       return;
     }
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: routeId, name: routeName, points: routePoints }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: routeId, name: routeName, points: routePoints, ...(publicInfo?.curated ? { curated: true, guide: publicInfo.guide, publicSource: publicInfo.publicSource, routeHash: publicInfo.routeHash } : {}) }));
     } catch (_) {}
-  }, [routePoints, routeName, routeId]);
+  }, [routePoints, routeName, routeId, publicInfo]);
 
   // Smoothed elevation profile: grade and climbing come from this rather than
   // from raw point-to-point GPX elevation, which is too noisy
@@ -504,7 +558,8 @@ export default function RoutePage() {
     return () => clearInterval(interval);
   }, [isRiding, isPaused, routePoints, routeProfile, routeStats, setGrade]);
 
-  const handleStartRide = useCallback(() => {
+  const handleStartRide = useCallback(async () => {
+    if (guide.mode === 'prepared') await guide.enableSaved();
     distanceRiddenRef.current       = 0;
     lastGradeRef.current            = -999;
     recorderRef.current.start();
@@ -512,7 +567,7 @@ export default function RoutePage() {
     setIsPaused(false);
     setLiveStats({ distanceRidden: 0, ele: routePoints[0]?.ele ?? 0, grade: 0, duration: 0 });
     setIsRiding(true);
-  }, [routePoints]);
+  }, [routePoints, guide.mode, guide.enableSaved]);
 
   const handlePauseRide = useCallback(() => {
     recorderRef.current.pause();
@@ -551,7 +606,7 @@ export default function RoutePage() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="route-page">
+    <div className={`route-page${isRiding ? ' is-riding' : ''}`}>
       <TopBar variant="main" onDeviceScanClick={() => setShowDeviceModal(true)} />
 
       <main id="main-content" className="route-main">
@@ -590,6 +645,7 @@ export default function RoutePage() {
                   </div>
                 </div>
 
+                {publicInfo?.curated && <details className="public-route-context"><summary>About this route · ~{publicInfo.estimatedMinutes} min</summary><p>{publicInfo.paceNote || 'Curated indoor ride · time depends on pace'}</p>{publicInfo.contentNote && <p>{publicInfo.contentNote}</p>}<small>{publicInfo.attribution || 'Open Ride curated collection'}</small><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Map data credits</a></details>}
                 {isRiding && (
                   <div className="ride-live-stats">
                     <div className="ride-live-stat">
@@ -614,6 +670,7 @@ export default function RoutePage() {
                 )}
 
                 <div className="route-controls">
+                  <TourGuideControls guide={guide} />
                   {!isRiding ? (
                     <button
                       type="button"
@@ -654,10 +711,11 @@ export default function RoutePage() {
                   <svg width="52" height="52" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
                   </svg>
-                  <p>Choose a route workout from the workout list</p>
+                  <p>{publicLoading || routeError || 'Choose a route workout from the workout list'}</p>
                 </div>
               ) : (
                 <>
+                  <TourGuideProgress guide={guide} />
                   <div className="map-view-toggle" role="tablist" aria-label="Route view">
                     <button
                       type="button"
@@ -680,7 +738,7 @@ export default function RoutePage() {
                   </div>
                   <RouteErrorBoundary>
                     {viewMode === 'map' ? (
-                      <RouteMap routePoints={routePoints} distanceKm={liveStats.distanceRidden} distanceKmRef={distanceRiddenRef} telemetryRef={telemetryRef} isFollowing={isRiding && !isPaused} />
+                      <RouteMap routePoints={routePoints} distanceKm={liveStats.distanceRidden} distanceKmRef={distanceRiddenRef} telemetryRef={telemetryRef} isFollowing={isRiding && !isPaused} tourStops={guideMarkers} photoPlaces={photoPlaces} />
                     ) : (
                       <Suspense fallback={<div className="route-3d-status">Loading 3D view…</div>}>
                         <Route3DView
@@ -688,15 +746,21 @@ export default function RoutePage() {
                           distanceKmRef={distanceRiddenRef}
                           telemetryRef={telemetryRef}
                           isRiding={isRiding && !isPaused}
+                          tourStops={guideMarkers}
                         />
                       </Suspense>
                     )}
                   </RouteErrorBoundary>
+                  <TourGuideSubtitles guide={guide} />
+                  {viewMode === 'map' && (guide.stops.length > 0 || photoPlaces.length > 0) && <div className="route-marker-legend">
+                    {guide.stops.length > 0 && <span><i />Guide stops</span>}
+                    {photoPlaces.length > 0 && <span><i className="photo-dot" />Photos</span>}
+                  </div>}
                 </>
               )}
             </div>
 
-            {routeStats && <NearbyPhotos routePoints={routePoints} distanceKm={liveStats.distanceRidden} />}
+            {routeStats && <NearbyPhotos guide={guide} routePoints={routePoints} distanceKm={liveStats.distanceRidden} onPlacesChange={setPhotoPlaces} />}
             {routeStats && (
               <div className="elevation-section">
                 <div className="elevation-label">Elevation profile</div>

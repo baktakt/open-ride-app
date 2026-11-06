@@ -1,5 +1,5 @@
 import { USER_DATA_KEYS } from './userManager.js';
-import { openDB, ROUTES_STORE, RIDES_STORE } from './db.js';
+import { openDB, ROUTES_STORE, RIDES_STORE, GUIDES_STORE } from './db.js';
 
 const SHARED_KEYS = ['openride_use_emulator', 'openride_connection_type'];
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -7,7 +7,7 @@ const isObject = value => value !== null && typeof value === 'object' && !Array.
 function withoutKeys(value) {
   if (Array.isArray(value)) return value.map(withoutKeys);
   if (!isObject(value)) return value;
-  return Object.fromEntries(Object.entries(value).filter(([key]) => key.toLowerCase() !== 'apikey').map(([key, item]) => [key, withoutKeys(item)]));
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !['apikey', 'secret', 'ownersecret'].includes(key.toLowerCase())).map(([key, item]) => [key, withoutKeys(item)]));
 }
 
 function profileData(snapshot) {
@@ -23,10 +23,11 @@ function profileData(snapshot) {
 export async function readBackupDatabase() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction([ROUTES_STORE, RIDES_STORE], 'readonly');
+    const tx = db.transaction([ROUTES_STORE, RIDES_STORE, GUIDES_STORE], 'readonly');
     const routes = tx.objectStore(ROUTES_STORE).getAll();
     const rides = tx.objectStore(RIDES_STORE).getAll();
-    tx.oncomplete = () => resolve({ routes: routes.result, rides: rides.result });
+    const guides = tx.objectStore(GUIDES_STORE).getAll();
+    tx.oncomplete = () => { db.close(); resolve({ routes: routes.result, rides: rides.result, guides: guides.result }); };
     tx.onabort = () => reject(tx.error || new Error('Could not read saved routes and rides.'));
     tx.onerror = () => reject(tx.error);
   });
@@ -35,12 +36,12 @@ export async function readBackupDatabase() {
 async function writeBackupDatabase(records, applyLocal) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction([ROUTES_STORE, RIDES_STORE], 'readwrite');
-    tx.oncomplete = resolve;
+    const tx = db.transaction([ROUTES_STORE, RIDES_STORE, GUIDES_STORE], 'readwrite');
+    tx.oncomplete = () => { db.close(); resolve(); };
     tx.onabort = () => reject(tx.error || new Error('Backup restore was cancelled.'));
     tx.onerror = () => reject(tx.error);
     try {
-      for (const [storeName, entries] of [[ROUTES_STORE, records.routes], [RIDES_STORE, records.rides]]) {
+      for (const [storeName, entries] of [[ROUTES_STORE, records.routes], [RIDES_STORE, records.rides], [GUIDES_STORE, records.guides || []]]) {
         const store = tx.objectStore(storeName);
         store.clear();
         for (const entry of entries) store.put(entry);
@@ -70,6 +71,14 @@ export async function buildFullBackup({ storage = localStorage, readDatabase = r
     app: 'Open Ride', version: 2, exportedAt: new Date().toISOString(), activeUserId, profiles,
     shared: Object.fromEntries(SHARED_KEYS.map(key => [key, storage.getItem(key)]).filter(([, value]) => value !== null)),
     routes: owned(records.routes), rides: owned(records.rides),
+    guides: await Promise.all(owned(records.guides || []).map(async record => ({ id: record.id, userId: record.userId, guide: record.guide,
+      clips: Object.fromEntries(await Promise.all(Object.entries(record.clips).map(async ([id, blob]) => {
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        let binary = '';
+        for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+        return [id, btoa(binary)];
+      }))),
+    }))),
   };
   validateFullBackup(payload);
   return withoutKeys(payload);
@@ -94,6 +103,22 @@ export function validateFullBackup(payload) {
       seen.add(entry.id);
     }
   }
+  if (payload.guides !== undefined) {
+    if (!Array.isArray(payload.guides)) throw new Error('Invalid saved guides.');
+    const seen = new Set();
+    for (const record of payload.guides) {
+      if (!isObject(record) || !ids.has(record.userId) || typeof record.id !== 'string' || seen.has(record.id) || !isObject(record.guide) || !Array.isArray(record.guide.stops) || !['en', 'sv'].includes(record.guide.language) || !/^[a-f0-9]{64}$/.test(record.guide.routeHash) || record.id !== `${record.userId}:${record.guide.routeHash}:${record.guide.language}` || !isObject(record.clips)) throw new Error('Invalid guide ownership or data.');
+      seen.add(record.id);
+      if (record.guide.version !== 1 || record.guide.stops.length < 1 || record.guide.stops.length > 16 || typeof record.guide.id !== 'string' || typeof record.guide.routeName !== 'string') throw new Error('Invalid guide manifest.');
+      const stops = new Set();
+      for (const stop of record.guide.stops) {
+        if (!isObject(stop) || typeof stop.id !== 'string' || !/^[a-f0-9-]{36}$/i.test(stop.id) || stops.has(stop.id) || typeof stop.text !== 'string' || stop.text.length > 650 || typeof stop.title !== 'string' || !Number.isFinite(stop.distanceKm) || stop.distanceKm < 0 || !Number.isFinite(stop.lat) || Math.abs(stop.lat) > 90 || !Number.isFinite(stop.lng) || Math.abs(stop.lng) > 180 || !Array.isArray(stop.sources) || !stop.sources.length || stop.sources.some(source => !isObject(source) || typeof source.title !== 'string' || !/^https:\/\/[a-z0-9.-]+\/[^\s]*$/i.test(source.url))) throw new Error('Invalid saved guide story.');
+        stops.add(stop.id);
+      }
+      if (Object.keys(record.clips).some(id => !stops.has(id))) throw new Error('Unexpected guide audio.');
+      for (const audio of Object.values(record.clips)) if (typeof audio !== 'string' || audio.length > 4194304 || !/^[A-Za-z0-9+/]*={0,2}$/.test(audio) || audio.length % 4) throw new Error('Invalid saved guide audio.');
+    }
+  }
   if (payload.shared !== undefined && !isObject(payload.shared)) throw new Error('Invalid shared settings.');
   for (const key of SHARED_KEYS) {
     if (payload.shared?.[key] !== undefined && typeof payload.shared[key] !== 'string') throw new Error('Invalid shared setting value.');
@@ -112,7 +137,7 @@ export async function restoreFullBackup(payload, { storage = localStorage, write
   const touched = new Set(previous.keys());
   const put = (key, value) => { touched.add(key); storage.setItem(key, value); };
   try {
-    await writeDatabase({ routes: backup.routes, rides: backup.rides }, () => {
+    await writeDatabase({ routes: backup.routes, rides: backup.rides, guides: (backup.guides || []).map(record => ({ ...record, cloud: null, clips: Object.fromEntries(Object.entries(record.clips).map(([id, base64]) => [id, new Blob([Uint8Array.from(atob(base64), char => char.charCodeAt(0))], { type: 'audio/wav' })])) })) }, () => {
       previous.forEach((_, key) => storage.removeItem(key));
       put('openride_users', JSON.stringify(backup.profiles.map(profile => profile.user)));
       put('openride_active_user', backup.activeUserId);
@@ -129,5 +154,5 @@ export async function restoreFullBackup(payload, { storage = localStorage, write
     previous.forEach((value, key) => storage.setItem(key, value));
     throw error;
   }
-  return { imported: ['All rider profiles', 'Settings, workouts, history and training programs', 'GPX routes', 'Ride recordings'], skipped: [], warnings: ['API keys were not restored. Reload the page before continuing.'] };
+  return { imported: ['All rider profiles', 'Settings, workouts, history and training programs', 'GPX routes', 'Ride recordings', 'Downloaded route narration'], skipped: [], warnings: ['Optional AI workout keys were not restored. Reload the page before continuing.'] };
 }

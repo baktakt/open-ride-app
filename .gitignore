@@ -33,3 +33,6 @@ npm-debug.log*
 
 # Terrain tile cache (backend/src/terrainTiles.ts)
 cache/
+
+# Offline starter-route build cache
+.cache/starter-routes/

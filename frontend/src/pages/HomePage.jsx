@@ -13,6 +13,7 @@ import {
 } from '../services/dataManager';
 import { listRideFileIds, loadRideFile, deleteRideFiles } from '../services/rideFiles';
 import { downloadRide } from '../services/rideExport';
+import PublicRouteCard from '../components/PublicRouteCard';
 import RouteWorkoutCard from '../components/RouteWorkoutCard';
 import { loadAllRoutes, saveRoute, renameRoute, deleteRoute } from '../services/routeLibrary';
 import { parseGPX } from '../services/gpx';
@@ -22,13 +23,15 @@ import '../styles/index.css';
 export default function HomePage() {
   const [searchParams] = useSearchParams();
   const [routes, setRoutes] = useState([]);
+  const [publicRoutes, setPublicRoutes] = useState([]);
+  const [publicStatus, setPublicStatus] = useState('loading');
   const [routeMessage, setRouteMessage] = useState('');
   const [importingRoute, setImportingRoute] = useState(false);
   const uploadRef = useRef(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'mine'
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'public' ? 'public' : 'all'); // 'all' | 'mine'
   const [workouts, setWorkouts] = useState([]);
-  const libraryWorkouts = useMemo(() => [...routes.map(route => ({ ...route, type: 'route', category: 'Route workouts', tags: ['GPX', 'Route'] })), ...workouts], [routes, workouts]);
+  const libraryWorkouts = useMemo(() => [...routes.map(route => ({ ...route, type: 'route', category: 'Route workouts', tags: ['GPX', 'Route'] })), ...publicRoutes.filter(route => !routes.some(local => local.publicSource === route.id)).map(route => ({ ...route, publicRoute: true, type: 'route', category: 'Route workouts', subcategory: route.theme || 'Curated', tags: ['Curated', route.theme || 'Route'] })), ...workouts], [routes, publicRoutes, workouts]);
   const [filteredWorkouts, setFilteredWorkouts] = useState([]);
   const [selectedDuration, setSelectedDuration] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') === 'routes' ? 'Route workouts' : null);
@@ -48,8 +51,19 @@ export default function HomePage() {
   const [cachedAt, setCachedAt] = useState(null);
   const categoryScrollRef = useRef(null);
 
+  const fetchPublicRoutes = useCallback(async () => {
+    setPublicStatus('loading');
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/public-routes`);
+      if (!response.ok) throw new Error('Unavailable');
+      const data = await response.json();
+      setPublicRoutes(data.routes || []); setPublicStatus('ready');
+    } catch { setPublicStatus('error'); }
+  }, [apiBaseUrl]);
+
   useEffect(() => {
     fetchWorkouts();
+    fetchPublicRoutes();
     loadAllRoutes().then(setRoutes).catch(() => setRouteMessage('Could not load saved routes.'));
     loadHistory();
     setRouteHistory(loadRouteHistory());
@@ -189,8 +203,8 @@ export default function HomePage() {
     // Duration filter
     if (selectedDuration) {
       filtered = filtered.filter(w => {
-        if (w.type === 'route') return false; // Route duration depends on riding pace.
-        const duration = w.totalDuration || 0;
+        if (w.type === 'route' && !w.estimatedMinutes) return false;
+        const duration = w.type === 'route' ? w.estimatedMinutes * 60 : w.totalDuration || 0;
         if (selectedDuration === 'short') return duration <= 30 * 60;
         if (selectedDuration === 'medium') return duration > 30 * 60 && duration <= 60 * 60;
         if (selectedDuration === 'long') return duration > 60 * 60;
@@ -354,7 +368,10 @@ export default function HomePage() {
     } catch (error) { throw error; }
   }, []);
 
-  const renderRouteCard = route => <RouteWorkoutCard key={route.id} route={route} onRename={handleRenameRoute} onDelete={handleDeleteRoute} />;
+  const renderRouteCard = route => {
+    const curated = route.publicRoute ? route : publicRoutes.find(item => item.id === route.publicSource);
+    return curated ? <PublicRouteCard key={route.id} route={curated} /> : <RouteWorkoutCard key={route.id} route={route} onRename={handleRenameRoute} onDelete={handleDeleteRoute} />;
+  };
 
   const durationLabels = { short: '0\u201330 min', medium: '31\u201360 min', long: '60+ min' };
   const isApiUnavailable = apiStatus === 'cached' || apiStatus === 'offline';
@@ -398,9 +415,11 @@ export default function HomePage() {
                 <span className="home-tab-count">{myWorkouts.length}</span>
               )}
             </button>
+            <button type="button" className={`home-tab ${activeTab === 'public' ? 'active' : ''}`} onClick={() => setActiveTab('public')}>Explore routes</button>
             <button type="button" className="route-import-action" disabled={importingRoute} onClick={() => uploadRef.current?.click()} title="Import a GPX as a saved route workout">{importingRoute ? 'Saving route…' : 'Import GPX'}</button>
           </div>
 
+          {activeTab === 'public' && <section className="public-route-explore"><h2>Ride somewhere with a story</h2><p>Handpicked rides with stories, landmark photos and narration included. Choose a route and start pedalling. No AI key or voice setup needed.</p><div className="workouts-grid">{publicRoutes.map(route => <PublicRouteCard key={route.id} route={route} />)}</div>{publicStatus === 'loading' && <p role="status">Loading routes…</p>}{publicStatus === 'error' && <p role="status">Could not load the route collection. <button type="button" onClick={fetchPublicRoutes}>Retry</button></p>}{publicStatus === 'ready' && !publicRoutes.length && <p>More curated rides are on the way.</p>}</section>}
           {/* My Workouts tab */}
           {activeTab === 'mine' && (
             <section className="my-workouts-section">
@@ -410,9 +429,9 @@ export default function HomePage() {
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ opacity: 0.25, marginBottom: '1rem' }}>
                     <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
                   </svg>
-                  <p>No AI workouts yet</p>
+                  <p>Your custom workouts will appear here</p>
                   <Link to="/ai-workout" className="my-workouts-cta">
-                    Generate your first AI workout
+                    Create an optional AI workout
                   </Link>
                 </div>
               ) : (
