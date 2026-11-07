@@ -370,12 +370,56 @@ to these bundled routes and their audio. There is no community catalogue, publis
 or personal-route upload endpoint. Vercel Blob and AI keys are not needed to serve
 curated rides. Earlier cloud-guide endpoints are disabled.
 
-For editorial updates, keep the road geometry, update the sourced chapters in
-`scripts/curate-starter-stories.py`, run that script, then run
-`node scripts/render-starter-guides.mjs`. The rendering tool uses the local Kokoro
-model and requires no paid API call. It writes audio duration metadata and text
-checksums. `scripts/build-starter-routes.py` can rebuild geometry from OpenStreetMap
-routing and public terrain data; follow it with curation and rendering.
+### Author a narrated ride with Hermes
+
+**Format:** GPX is the standard track format for a rider’s personal, local route. A ride in **Explore routes** uses **Open Ride JSON v1**: an ordered track, distance-triggered chapters, and one prerecorded WAV per chapter. There is no public upload API. Deliver a curated ride as a Git pull request; once merged and deployed, everyone can ride it without a model download or API key.
+
+**Give Hermes this brief** (replace the bracketed fields):
+
+> In the Open Ride checkout, follow “Author a narrated ride with Hermes” in README.md. Create one [duration, 30–120 minutes] indoor ride around [place] for someone who enjoys [theme]. The rider has both hands on the bars. Pitch the ride in one sentence that makes them want to hear the ending; use that promise to choose the track and stops. Deliver the working track, sourced script, matching caption text, local speech recordings, and a reviewable PR. Include the opening clip and your favourite reveal in the PR description so I can judge the writing by ear.
+
+**Write for the next turn of the pedals.** Build a beat sheet before generating audio: planned kilometre, what is actually nearby, the question this chapter answers, and the source that earns the answer. For a harbour ride, for example, open with a puzzle: *“A ship wants to go straight. This railway line crosses its path. Which one gets out of the way?”* If the route really passes a swing bridge, save the answer for its approach. Now the next kilometre has a purpose. Give each chapter one detail someone could retell after the ride. Change the rhythm: a short riddle, a person making a choice, a reveal, a callback. Cut generic encouragement and lists of dates. Verify physical details; label a local legend as a legend, and never invent dialogue to make history livelier.
+
+1. **Lay out the track.** Add a new entry to `routes` in [the geometry builder](scripts/build-starter-routes.py). Give it a unique stable `slug`, name, description, theme, content note, source links, reference speed in km/h and ordered waypoints **[longitude, latitude]**. Use the bike routing profile for an ordinary cycling route. Set `stories=[]` for this entry; the editorial step below supplies the final chapters. Check that the routed roads actually visit your landmarks. On a loop, distinguish the outbound pass from the return. Use a plausible pace: 18 km at 24 km/h is 45 minutes.
+
+2. **Build just the new geometry.** From the repo root with Python 3 and Pillow available, run the following, replacing `your-new-slug`. Running the builder directly rebuilds *every* track. This command appends one record and preserves the others. If you already have a GPX track you have permission to distribute, you can instead convert its track points to the same manifest shape; keep the source and a reproducible recipe alongside the authoring scripts.
+
+   ```sh
+   python3 - your-new-slug <<'PY'
+   import json, runpy, sys
+   from datetime import datetime, timezone
+   from pathlib import Path
+   builder = runpy.run_path('scripts/build-starter-routes.py')
+   spec, = [r for r in builder['routes'] if r['slug'] == sys.argv[1]]
+   ride = builder['build'](spec)
+   path = Path('backend/routes/starter-routes.json')
+   catalogue = json.loads(path.read_text())
+   if any(r['id'] == ride['id'] for r in catalogue):
+       sys.exit('This route already exists; edit its chapters instead of appending it.')
+   ride['publishedAt'] = ride['guide']['createdAt'] = datetime.now(timezone.utc).isoformat()
+   path.write_text(json.dumps([*catalogue, ride], ensure_ascii=False, separators=(',', ':')))
+   PY
+   ```
+
+   The [manifest](backend/routes/starter-routes.json) is a JSON array. Each ride has `version: 1`, a stable UUID in v4 format, `curated: true`, card metadata, attribution, `points`, and a `guide`. Each point is **`{lat, lng, ele, distanceFromStart}`**: degrees, metres above sea level, and cumulative **kilometres** starting at zero. Sum segment lengths along the track, not straight-line distances from the start. Derive distance, climb, min/max elevation and estimated minutes from that geometry. The [backend validator](backend/src/publicRoutes.ts) checks segment lengths and accepts 2–20,000 points.
+
+3. **Place and write the chapters.** In [the editorial script](scripts/curate-starter-stories.py), add a `chapters` entry keyed by a **unique prefix of the ride name**. Its value is a list of `c(distanceKm, title, photoTitle, text, sourceUrl)` calls in riding order. Use 7–16 chapters. Open at 0 km; close within the final 0.6 km, leaving time to hear the ending. At the reference pace, allow at most 11 minutes between triggers and enough space for each clip to finish. Use 30–650 characters per chapter and at least one HTTPS source that supports its claims. In the JSON each source is an object with a readable `title` and a `url`. Give `photoTitle` the exact English Wikipedia article title of the subject for photo lookup. A chapter about somewhere off the track should say so. The script places the marker at the track point nearest the specified *distance*. The app splits **`text`** into subtitles automatically: give the narrator those same words, without stage directions or SSML.
+
+4. **Render the voice.** For the included English voice, use Node 22.12+ and run these commands from the repository root:
+
+   ```sh
+   npm ci --prefix frontend --include=dev
+   python3 scripts/curate-starter-stories.py
+   node scripts/render-starter-guides.mjs
+   ```
+
+   The renderer downloads Kokoro on first use, runs it locally, and reuses clips whose text is unchanged. It calculates the geometry fingerprint, sets both copies of `routeHash`, and records each clip’s duration. Listen for mispronounced names, clipped endings, long silences and sentences that need two breaths. Revise the script and render again.
+
+   **Using your own local TTS instead:** write `backend/routes/audio/<route.id>/<stop.id>.wav` as mono signed 16-bit little-endian PCM WAV with a standard 44-byte header (24 kHz works). Each clip must be **longer than 10 and shorter than 65 seconds**, audible, and under 3 MiB. Beside it write `<stop.id>.sha256`: lowercase hex SHA-256 of the exact UTF-8 **stop text**, with **no trailing newline**. Set `stop.audioSeconds` to the measured duration. Use the actual model and voice in the guide metadata. For custom generation, compute `routeHash` with Node as SHA-256 of `JSON.stringify(points.map(p => [p.lat, p.lng, p.ele, p.distanceFromStart]))`; copy it into `guide.routeHash`. Keep route and stop IDs stable on edits, but change `guide.id` when narration changes so returning riders fetch the new clips. A voice-only change requires replacing the WAV even though the text stamp still matches.
+
+5. **Ride it, then submit it.** Run `npm ci --prefix backend` and `npm test --prefix backend`. Start the backend and frontend with `npm run dev --prefix backend` and `npm run dev --prefix frontend` in separate terminals. Open `http://localhost:3000/?emulator=true`, connect the emulated trainer, and choose **Explore routes → your ride → Start Ride**. Check the first story starts without riding past it, captions match speech, photos match the subject, and the next marker gives you something to ride toward. Check the final trigger against the finish and listen to the closing clip. For a direct audio check, use `GET /api/public-routes/<route.id>/audio/<stop.id>`.
+
+   Commit the recipe, catalogue change, WAVs and text stamps on a branch. Verify the diff preserves the other rides. Open a PR against `main` with the pitch, distance, elevation gain, estimated pace/time, chapter list with sources, and listening notes. Link the checked-in clips or the preview’s audio endpoint. Merging and deploying the backend publishes the ride; importing a GPX in the app keeps it private.
 
 ### Personal GPX rides
 

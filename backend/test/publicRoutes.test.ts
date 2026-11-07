@@ -27,7 +27,7 @@ test('the curated catalogue is read-only and cannot publish or expose personal r
   const base = `http://127.0.0.1:${(server.address() as { port: number }).port}/routes`;
   try {
     const list = await (await fetch(base)).json();
-    assert.equal(list.routes.length, 5);
+    assert.deepEqual(list.routes.map((route: { id: string }) => route.id), routes.map(route => route.id));
     assert.ok(list.routes.every((route: { curated: boolean; storyCount: number }) => route.curated && route.storyCount >= 7));
     assert.equal((await fetch(`${base}/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).status, 405);
     assert.equal((await fetch(`${base}/${id}`, { method: 'DELETE' })).status, 405);
@@ -39,7 +39,13 @@ test('the curated catalogue is read-only and cannot publish or expose personal r
 
 test('curated collection has realistic geometry, complete sources, narration and duration estimates', async () => {
   const routes = await loadStarterRoutes();
-  assert.equal(routes.length, 5);
+  const ids = new Set(routes.map(route => route.id));
+  assert.equal(ids.size, routes.length, 'Each ride has its own public URL');
+  for (const starter of [
+    'fd6e046e-8d12-484c-8471-1a6594a29c54', '5a1a02b3-e336-4b74-8ed6-653634196c1d',
+    'dae5a1f9-1fde-43a2-9bef-c07d95c89198', 'bac93819-2620-40e3-8a87-9d67d10b6729',
+    '341cdbc2-1b62-4c49-882b-9a690a779c87',
+  ]) assert.ok(ids.has(starter), `Missing original ride: ${starter}`);
   for (const route of routes) {
     assert.ok(route.estimatedMinutes >= 30 && route.estimatedMinutes <= 120);
     const checked = validatePublicRoute(route, route.id)!;
