@@ -45,3 +45,11 @@ export function speedFromPower(power, gradePercent, rider = DEFAULT_RIDER) {
   }
   return (low + high) / 2;
 }
+
+// Only trainers that have never supplied power use wheel speed. A genuine
+// zero watt reading means coasting, even when the flywheel is still spinning.
+export function routeSpeedKmh(telemetry, grade, mass, active) {
+  if (!active) return 0;
+  if (!telemetry.hasPower) return Math.max(0, telemetry.speed || 0);
+  return 3.6 * speedFromPower(telemetry.power, grade, { mass });
+}

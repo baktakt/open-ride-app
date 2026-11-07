@@ -469,18 +469,22 @@ export default function WorkoutPage({ isVisible = true }) {
   const commandMode = segment?.mode;
   const commandValue = commandMode === 'erg' ? applyBias(targetPowerAt(segment, segmentElapsed)) : segment?.resistance;
   targetPowerRef.current = commandMode === 'erg' ? commandValue : 0;
+  // Read the latest target on each send; a ramp must not start overlapping writes.
+  const controlTarget = useRef(null);
+  controlTarget.current = { mode: commandMode, value: commandValue };
   useEffect(() => {
     if (!isRunning || isPaused) {
+      setTrainerNotice('');
       if (hadControlRef.current) { hadControlRef.current = false; setResistance(0).catch(() => {}); }
       return;
     }
     if (status !== 'connected' || !segment) return;
     hadControlRef.current = true;
     return startTrainerControl({
-      send: () => commandMode === 'erg' ? setTargetPower(commandValue) : setResistance(commandValue),
+      send: () => controlTarget.current.mode === 'erg' ? setTargetPower(controlTarget.current.value) : setResistance(controlTarget.current.value),
       onError: setTrainerNotice,
     });
-  }, [isRunning, isPaused, status, connectedDevice?.deviceId, commandMode, commandValue, setTargetPower, setResistance]);
+  }, [isRunning, isPaused, status, connectedDevice?.deviceId, setTargetPower, setResistance]);
 
   useEffect(() => () => { setResistance(0).catch(() => {}); }, [setResistance]);
 
@@ -554,7 +558,7 @@ export default function WorkoutPage({ isVisible = true }) {
     <div>
       <TopBar onDeviceScanClick={() => setIsDeviceModalOpen(true)} />
 
-      {trainerNotice && <p className="trainer-control-notice" role="status">{trainerNotice}</p>}
+      {isRunning && !isPaused && status === 'connected' && trainerNotice && <p className="trainer-control-notice" role="status">{trainerNotice}</p>}
       {isRunning && status !== 'connected' && <p className="trainer-control-notice" role="status">Trainer connection lost. Reconnect using Connect Devices; your workout clock is still running.</p>}
       {showPreview ? (
         <main id="main-content" className="workout-preview">

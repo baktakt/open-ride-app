@@ -1,12 +1,14 @@
 /** Keep a trainer command alive and retry failed initial commands instead of caching failure. */
 export function startTrainerControl({ send, onError = () => {}, schedule = setTimeout, cancel = clearTimeout }) {
   let active = true;
+  let failures = 0;
   let timer;
   const attempt = async () => {
     let failed = false;
     try { failed = await send() === false; } catch { failed = true; }
     if (!active) return;
-    onError(failed ? 'Trainer control interrupted. Retrying automatically…' : '');
+    failures = failed ? failures + 1 : 0;
+    if (!failed || failures === 3) onError(failed ? 'Trainer hasn’t confirmed the workload. Retrying…' : '');
     timer = schedule(attempt, failed ? 2000 : 4000);
   };
   attempt();

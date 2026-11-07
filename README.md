@@ -312,7 +312,7 @@ GPX elevation data  →  calculate gradient between track points
                     →  trainer adjusts resistance in real time
 ```
 
-Progress along the route is tracked using your reported speed (from the trainer). The app advances your position along the track proportionally, then looks up the gradient at that location.
+Route speed is estimated from measured power, route gradient and the combined rider and bike weight. The map and ride recording use the same estimate, so a gear change alone does not change route speed. Trainers without power data and structured workouts use trainer-reported speed. The app advances your position along the track proportionally, then looks up the gradient at that location.
 
 **Storage:** Saved routes live in the browser's IndexedDB under the `openride` database, `routes` store. They are scoped per user profile. Route ride history (completed ride summaries) is stored in localStorage under `openride_route_history`.
 

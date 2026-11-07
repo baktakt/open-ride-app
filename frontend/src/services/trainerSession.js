@@ -26,3 +26,31 @@ export function restoreTrainerSession(manager, { storage, deviceKey, initialize 
   restores.set(manager, task);
   return task;
 }
+
+// A lost radio channel can be reopened on the already-granted stick. Never
+// open USB or scan here: both actions belong to the rider's device dialog.
+export function recoverRideTrainer(manager, getSavedId, { schedule = setTimeout, cancel = clearTimeout } = {}) {
+  let timer, attempts = 0, generation = 0;
+  const reset = () => { generation++; cancel(timer); timer = undefined; attempts = 0; };
+  const lost = id => {
+    if (timer !== undefined || attempts >= 3 || Number(getSavedId()) !== id) return;
+    const session = generation;
+    timer = schedule(async () => {
+      timer = undefined;
+      if (session !== generation || Number(getSavedId()) !== id || manager.dongleStatus !== 'connected'
+          || manager.connectionStatus !== 'disconnected' || manager.scanStatus === 'scanning') return;
+      let attached = false;
+      try { attached = await manager.connect(id, true); } catch { /* retry below */ }
+      if (!attached && session === generation) lost(id);
+    }, 2000 * 2 ** attempts++);
+  };
+  manager.on('radio_lost', lost);
+  manager.on('manual_connection', reset);
+  manager.on('telemetry', reset);
+  return () => {
+    reset();
+    manager.off('radio_lost', lost);
+    manager.off('manual_connection', reset);
+    manager.off('telemetry', reset);
+  };
+}

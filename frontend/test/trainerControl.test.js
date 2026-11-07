@@ -6,9 +6,11 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
 
 test('a rejected first power command retries automatically and successful targets keep alive', async () => {
   let attempts = 0; const jobs = []; const notices = [];
-  const stop = startTrainerControl({ send: async () => ++attempts > 1, onError: value => notices.push(value), schedule: (fn, delay) => { jobs.push({ fn, delay }); return 1; }, cancel() {} });
-  await flush(); assert.equal(jobs[0].delay, 2000); assert.ok(notices[0]);
-  jobs.shift().fn(); await flush(); assert.equal(attempts, 2); assert.equal(notices[1], ''); assert.equal(jobs[0].delay, 4000);
+  const stop = startTrainerControl({ send: async () => ++attempts > 3, onError: value => notices.push(value), schedule: (fn, delay) => { jobs.push({ fn, delay }); return 1; }, cancel() {} });
+  await flush(); assert.equal(jobs[0].delay, 2000); assert.equal(notices.length, 0);
+  jobs.shift().fn(); await flush(); assert.equal(notices.length, 0);
+  jobs.shift().fn(); await flush(); assert.ok(notices[0]);
+  jobs.shift().fn(); await flush(); assert.equal(attempts, 4); assert.equal(notices[1], ''); assert.equal(jobs[0].delay, 4000);
   stop();
 });
 
