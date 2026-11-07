@@ -5,6 +5,8 @@
  * Requires Chrome/Edge/Opera browser with WebUSB support.
  */
 
+import { sendAntCommand } from './trainerControl.js';
+import { initializeTrainerOnce } from './trainerSession.js';
 import { WebUsbStick, FitnessEquipmentSensor, FitnessEquipmentScanner } from 'ant-plus-next';
 
 // Typical road tyre on smooth tarmac (FE-C default is 0.004)
@@ -85,7 +87,11 @@ export class AntManagerWebUSB extends EventEmitter {
    * Initialize the ANT+ USB dongle using WebUSB
    * This will trigger browser's USB device picker (or reuse existing permissions)
    */
-  async initialize() {
+  initialize() {
+    return initializeTrainerOnce(this, () => this.openDongle());
+  }
+
+  async openDongle() {
     this.log('info', 'Initializing WebUSB ANT+ manager...');
 
     this.setDongleStatus('connecting');
@@ -111,8 +117,7 @@ export class AntManagerWebUSB extends EventEmitter {
     this.setDongleStatus('error');
     this.log('error', 'No ANT+ USB stick selected. Please try again and select your ANT+ dongle.');
 
-    // Clear connection state
-    localStorage.removeItem('openride_was_connected');
+    // Keep the remembered trainer after a transient USB failure; retry is user-driven.
     return false;
   }
 
@@ -510,7 +515,7 @@ export class AntManagerWebUSB extends EventEmitter {
     this.log('info', `Setting target power to ${power}W`);
 
     try {
-      await this.sensor.setTargetPower(power);
+      if (!await sendAntCommand(ack => this.sensor.setTargetPower(power, ack))) return false;
       this.log('info', `Target power set to ${power}W`);
       return true;
     } catch (err) {
@@ -534,7 +539,7 @@ export class AntManagerWebUSB extends EventEmitter {
     this.log('info', `Setting resistance to ${percent}%`);
 
     try {
-      await this.sensor.setBasicResistance(percent);
+      if (!await sendAntCommand(ack => this.sensor.setBasicResistance(percent, ack))) return false;
       this.log('info', `Resistance set to ${percent}%`);
       return true;
     } catch (err) {
@@ -557,7 +562,7 @@ export class AntManagerWebUSB extends EventEmitter {
 
     const grade = Math.max(-20, Math.min(20, gradePercent));
     try {
-      await this.sensor.setTrackResistance(grade, ROLLING_RESISTANCE_COEFF);
+      if (!await sendAntCommand(ack => this.sensor.setTrackResistance(grade, ROLLING_RESISTANCE_COEFF, ack))) return false;
       this.log('info', `Grade set to ${grade.toFixed(1)}%`);
       return true;
     } catch (err) {

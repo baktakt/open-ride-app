@@ -2001,3 +2001,11 @@ h1, h2, h3, h4 {
 .public-route-context p { margin: 8px 0; }
 .public-route-context small { display: block; font-size: .65rem; }
 .public-route-context a { display: inline-block; margin-top: 6px; color: #9edce8; }
+.active-session-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 24px; color: #e8f8f4; background: #103b38; border-bottom: 1px solid #42d3b566; }
+.active-session-bar > div { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .85rem; }
+.active-session-bar strong { color: #75f0ce; }
+.active-session-bar a { flex-shrink: 0; background: #00c9a6; color: #08272d; border-radius: 7px; padding: 8px 14px; text-decoration: none; font-weight: 700; }
+.active-session-bar button { color: #fff; background: transparent; border: 0; font-size: 1.4rem; cursor: pointer; }
+.session-page[hidden] { display: none; }
+.session-conflict { padding: 40px; color: #e9f4ff; }
+.session-conflict a, .session-conflict button { margin-right: 20px; color: #54dfc5; }

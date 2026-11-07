@@ -7,15 +7,21 @@ import { AntManagerWebUSB } from './antManagerWebUSB.js';
 import { AntManagerEmulator } from './antManagerEmulator.js';
 
 // Create singleton instance
-let antManagerInstance = null;
+let antManagerInstance = import.meta.hot?.data.manager || null;
+if (import.meta.hot) import.meta.hot.dispose(data => { data.manager = antManagerInstance; });
 
 // Check for emulator mode from URL parameter or localStorage
 function shouldUseEmulator() {
   // Check URL parameter first (for easy testing)
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has('emulator')) {
-    return urlParams.get('emulator') === 'true';
+    const enabled = urlParams.get('emulator') === 'true';
+    sessionStorage.setItem('openride_session_emulator', String(enabled));
+    return enabled;
   }
+
+  const session = sessionStorage.getItem('openride_session_emulator');
+  if (session !== null) return session === 'true';
 
   // Check localStorage
   const stored = localStorage.getItem('openride_use_emulator');
@@ -25,7 +31,7 @@ function shouldUseEmulator() {
 /**
  * Get or create the ANT manager instance
  * Uses emulator if ?emulator=true is in URL or localStorage has openride_use_emulator=true
- * Automatically reconnects if USB permissions were previously granted
+ * AntProvider restores previously granted connections after subscribing to events.
  */
 export function getAntManager() {
   if (!antManagerInstance) {
@@ -34,29 +40,9 @@ export function getAntManager() {
     if (useEmulator) {
       antManagerInstance = new AntManagerEmulator();
       console.log('🎮 Created ANT+ Emulator instance (no hardware required)');
-
-      // Auto-connect emulator
-      setTimeout(() => {
-        antManagerInstance.initialize();
-      }, 100);
     } else {
       antManagerInstance = new AntManagerWebUSB();
       console.log('Created ANT+ WebUSB Manager instance');
-
-      // Auto-reconnect if we had a previous connection
-      const wasConnected = localStorage.getItem('openride_was_connected');
-      if (wasConnected === 'true') {
-        console.log('Previous connection detected, attempting to reconnect...');
-        setTimeout(async () => {
-          const success = await antManagerInstance.initialize();
-          if (success) {
-            console.log('✅ Automatically reconnected to USB dongle');
-          } else {
-            console.log('Failed to auto-reconnect. Please reconnect manually.');
-            localStorage.removeItem('openride_was_connected');
-          }
-        }, 100);
-      }
     }
   }
   return antManagerInstance;
@@ -66,13 +52,14 @@ export function getAntManager() {
  * Check if using emulator
  */
 export function isEmulatorMode() {
-  return shouldUseEmulator();
+  return antManagerInstance ? antManagerInstance instanceof AntManagerEmulator : shouldUseEmulator();
 }
 
 /**
  * Set emulator mode (saves to localStorage)
  */
 export function setEmulatorMode(enabled) {
+  sessionStorage.removeItem('openride_session_emulator');
   localStorage.setItem('openride_use_emulator', enabled ? 'true' : 'false');
   console.log(`Emulator mode ${enabled ? 'enabled' : 'disabled'}. Reload page to apply.`);
 }

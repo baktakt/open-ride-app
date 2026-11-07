@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAnt } from '../contexts/AntContext';
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -64,13 +64,18 @@ export default function DeviceModal({ isOpen, onClose }) {
     disconnectHeartRateMonitor,
   } = useAnt();
 
+  const [connectionError, setConnectionError] = useState('');
+  const [connecting, setConnecting] = useState(false);
+
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleStartScan = async () => {
     try {
-      if (status === 'disconnected') await initialize();
+      setConnectionError('');
+      if (status === 'disconnected' && await initialize() === false) throw new Error('Could not open the ANT+ dongle. Check that it is connected and try again.');
       await startScan();
     } catch (err) {
+      setConnectionError(err.message);
       console.error('Failed to start scan:', err);
     }
   };
@@ -84,12 +89,15 @@ export default function DeviceModal({ isOpen, onClose }) {
   };
 
   const handleConnect = async (deviceId) => {
+    if (connecting) return;
+    setConnecting(true); setConnectionError('');
     try {
       await connect(deviceId);
       setTimeout(() => onClose(), 400);
     } catch (err) {
+      setConnectionError(err.message);
       console.error('Failed to connect:', err);
-    }
+    } finally { setConnecting(false); }
   };
 
   const handleDisconnect = async () => {
@@ -214,6 +222,7 @@ export default function DeviceModal({ isOpen, onClose }) {
         </div>
 
         <div className="modal-body">
+          {connectionError && <p role="alert">{connectionError}</p>}
 
           {/* Status bar */}
           <div className="device-status-bar">
@@ -317,7 +326,7 @@ export default function DeviceModal({ isOpen, onClose }) {
                       ) : (
                         <button
                           className="btn btn-primary btn-sm"
-                          onClick={() => handleConnect(device.deviceId)}
+                          disabled={connecting} onClick={() => handleConnect(device.deviceId)}
                         >
                           Connect
                         </button>

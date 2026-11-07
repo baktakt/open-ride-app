@@ -77,7 +77,7 @@ export function useTourGuide({ route, distanceKm, isRiding, isPaused }) {
 
 /** Pre-ride choices stay beside Start Ride; listeners never see voice engines or creation tools. */
 export function TourGuideControls({ guide }) {
-  if (!guide.hasGuide) return <p className="personal-route-note">Your GPX stays on this device. Ride at your own pace and enjoy nearby photos.</p>;
+  if (!guide.hasGuide) return <p className="personal-route-note">Your GPX stays on this device. Your workout runs automatically while you enjoy nearby photos.</p>;
   const seconds = guide.allStops.reduce((sum, stop) => sum + (stop.audioSeconds || stop.text.split(/\s+/).length / 2.4), 0);
   if (guide.isRiding) return <div className="ride-guide-setup ride-guide-active">
     <label><input type="checkbox" checked={guide.enabled} onChange={event => guide.toggle(event.target.checked)} />Guide audio</label>

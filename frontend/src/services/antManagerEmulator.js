@@ -216,10 +216,15 @@ export class AntManagerEmulator extends EventEmitter {
     return this._connectedDeviceId;
   }
 
+  getStatus() {
+    return { dongle: this._dongleStatus, scan: this._scanStatus, connection: this._connectionStatus, connectedDeviceId: this._connectedDeviceId };
+  }
+
   /**
    * Initialize (simulated)
    */
   async initialize() {
+    if (this._dongleStatus === 'connected') return true;
     this.log('info', 'Initializing emulated ANT+ manager...');
     this.setDongleStatus('connecting');
 

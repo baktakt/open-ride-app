@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { getAntManager } from '../services/antManager';
+import React, { useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { ANT_DEVICE_KEY, EMULATOR_DEVICE_KEY, restoreTrainerSession } from '../services/trainerSession';
+import { getAntManager, isEmulatorMode } from '../services/antManager';
 import { BluetoothManagerWebBluetooth } from '../services/bluetoothManagerWebBluetooth';
 import { HeartRateMonitorWebBluetooth } from '../services/heartRateMonitorWebBluetooth';
 import { EMPTY_TELEMETRY, mergeTelemetry } from '../services/telemetry';
 
-const AntContext = createContext(null);
+import { AntContext } from './contextObjects';
 
 export function useAnt() {
   const context = useContext(AntContext);
@@ -17,6 +18,7 @@ export function useAnt() {
 export function AntProvider({ children }) {
   // Both managers are created once and kept alive for the session.
   const [antManager]       = useState(() => getAntManager());
+  const deviceKey = isEmulatorMode() ? EMULATOR_DEVICE_KEY : ANT_DEVICE_KEY;
   const [bluetoothManager] = useState(() => new BluetoothManagerWebBluetooth());
   // Optional Bluetooth heart rate strap, usable with either trainer connection
   const [heartRateMonitor] = useState(() => new HeartRateMonitorWebBluetooth());
@@ -28,7 +30,7 @@ export function AntProvider({ children }) {
     () => localStorage.getItem('openride_connection_type') || 'ant+'
   );
 
-  // Tracks whether a workout is actively in progress (used by TopBar to guard navigation)
+  // Tracks whether a workout is actively in progress (used to protect the rider profile during a session)
   const [workoutActive, setWorkoutActive] = useState(false);
 
   // Shared UI state
@@ -63,7 +65,8 @@ export function AntProvider({ children }) {
     function applyStatus(statusObj) {
       if (statusObj.connection === 'connected') {
         setStatus('connected');
-        if (statusObj.connectedDeviceId) {
+        if (statusObj.connectedDeviceId != null) {
+          if (connectionType === 'ant+') localStorage.setItem(deviceKey, String(statusObj.connectedDeviceId));
           setConnectedDevice({
             deviceId: statusObj.connectedDeviceId,
             name:     statusObj.connectedDeviceName || null,
@@ -109,7 +112,7 @@ export function AntProvider({ children }) {
       manager.off('device_discovered', handleDeviceDiscovered);
       manager.off('telemetry',         handleTelemetry);
     };
-  }, [connectionType, antManager, bluetoothManager]);
+  }, [connectionType, antManager, bluetoothManager, deviceKey]);
 
   // ── Heart rate strap ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -132,22 +135,20 @@ export function AntProvider({ children }) {
   const connectHeartRateMonitor = useCallback(() => heartRateMonitor.connect(), [heartRateMonitor]);
   const disconnectHeartRateMonitor = useCallback(() => heartRateMonitor.disconnect(), [heartRateMonitor]);
 
-  // ── Auto-initialise ANT+ if it was previously connected ───────────────────
+  // Restore a granted dongle and its last trainer once, independently of page navigation.
   useEffect(() => {
     if (connectionType !== 'ant+') return;
-    const wasConnected = localStorage.getItem('openride_was_connected');
-    if (wasConnected === 'true' && status === 'disconnected') {
-      console.log('[AntContext] Auto-initialising ANT+ manager');
-      antManager.initialize().catch(err => {
-        console.error('[AntContext] Auto-init failed:', err);
+    if (isEmulatorMode() || localStorage.getItem('openride_was_connected') === 'true') {
+      restoreTrainerSession(antManager, { storage: localStorage, deviceKey }).catch(err => {
+        console.error('[AntContext] Could not restore trainer:', err);
       });
     }
-  }, [antManager, status, connectionType]);
+  }, [antManager, connectionType, deviceKey]);
 
   // ── Helper: resolve the active manager ────────────────────────────────────
   const _activeManager = useCallback(() => {
     return connectionType === 'bluetooth' ? bluetoothManager : antManager;
-  }, [connectionType, antManager, bluetoothManager]);
+  }, [connectionType, antManager, bluetoothManager, deviceKey]);
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -190,7 +191,8 @@ export function AntProvider({ children }) {
 
   const connect = useCallback(async (deviceId) => {
     try {
-      await _activeManager().connect(deviceId);
+      const connected = await _activeManager().connect(deviceId);
+      if (connected === false) throw new Error('Could not connect to this trainer. Please try again.');
     } catch (err) {
       console.error('[AntContext] connect failed:', err);
       throw err;
@@ -199,16 +201,17 @@ export function AntProvider({ children }) {
 
   const disconnect = useCallback(async () => {
     try {
+      if (connectionType === 'ant+') localStorage.removeItem(deviceKey);
       await _activeManager().disconnect();
     } catch (err) {
       console.error('[AntContext] disconnect failed:', err);
       throw err;
     }
-  }, [_activeManager]);
+  }, [_activeManager, connectionType, deviceKey]);
 
   const setTargetPower = useCallback(async (watts) => {
     try {
-      await _activeManager().setTargetPower(watts);
+      return await _activeManager().setTargetPower(watts);
     } catch (err) {
       console.error('[AntContext] setTargetPower failed:', err);
       throw err;
@@ -217,7 +220,7 @@ export function AntProvider({ children }) {
 
   const setResistance = useCallback(async (percent) => {
     try {
-      await _activeManager().setResistance(percent);
+      return await _activeManager().setResistance(percent);
     } catch (err) {
       console.error('[AntContext] setResistance failed:', err);
       throw err;
@@ -226,7 +229,7 @@ export function AntProvider({ children }) {
 
   const setGrade = useCallback(async (gradePercent) => {
     try {
-      await _activeManager().setGrade(gradePercent);
+      return await _activeManager().setGrade(gradePercent);
     } catch (err) {
       console.error('[AntContext] setGrade failed:', err);
       throw err;
