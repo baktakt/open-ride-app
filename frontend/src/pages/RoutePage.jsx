@@ -1,5 +1,8 @@
+import { useRideSession } from '../contexts/RideSessionContext';
+import { startTrainerControl } from '../services/trainerControl';
+import { routeTrainingTarget, routeTrainingProfile } from '../services/routeTraining';
 import React, { Component, Suspense, lazy, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import L from 'leaflet';
 import { placeMarkerSvg, groupPhotoMarkers } from '../services/routeMapIcons';
 import { useAnt } from '../contexts/AntContext';
@@ -315,8 +318,10 @@ function loadSavedRoute() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function RoutePage() {
-  const { telemetry, setGrade, status } = useAnt();
+export default function RoutePage({ isVisible = true }) {
+  const location = useLocation();
+  const { startSession, updateSession, endSession } = useRideSession();
+  const { telemetry, setGrade, setTargetPower, setResistance, status, connectedDevice, setWorkoutActive } = useAnt();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -341,6 +346,10 @@ export default function RoutePage() {
   // Map panel: 2D map or 3D first-person view
   const guide = useTourGuide({ route: publicInfo, distanceKm: liveStats.distanceRidden, isRiding, isPaused });
   const guideMarkers = useMemo(() => groupGuideStops(guide.stops), [guide.stops]);
+  const [rideMode, setRideMode] = useState('training');
+  const [trainerNotice, setTrainerNotice] = useState('');
+  const hadControlRef = useRef(false);
+  const target = routeTrainingTarget(liveStats.distanceRidden, routePoints.at(-1)?.distanceFromStart || 0, readFtp());
   const [viewMode, setViewMode] = useState('map'); // 'map' | '3d'
 
   // Completion summary
@@ -352,7 +361,6 @@ export default function RoutePage() {
   // Refs for interval
   const telemetryRef       = useRef(telemetry);
   const distanceRiddenRef  = useRef(0);
-  const lastGradeRef       = useRef(-999);
   const recorderRef        = useRef(null);
   if (!recorderRef.current) recorderRef.current = createRideRecorder();
 
@@ -430,10 +438,10 @@ export default function RoutePage() {
     return { totalDistance, elevationGain: elevationGain(routeProfile), minEle, maxEle };
   }, [routePoints, routeProfile]);
 
-  // ── Reset trainer grade on unmount ──────────────────────────────────────────
+  // Release trainer control when the activity is removed.
   useEffect(() => {
-    return () => { setGrade(0).catch(() => {}); };
-  }, [setGrade]);
+    return () => { setResistance(0).catch(() => {}); };
+  }, [setResistance]);
 
   // ── Ride completion summary ───────────────────────────────────────────────────
   useEffect(() => {
@@ -443,15 +451,16 @@ export default function RoutePage() {
     // Only trigger when ride transitions from active to stopped
     if (!wasRiding || isRiding) return;
 
-    // Skip summary for trivial distances (< 100 m)
-    if (distanceRiddenRef.current < 0.1) return;
+    const recorder = recorderRef.current;
+    recorder.stop();
+    // A very short test ride has no saved summary to return to.
+    if (distanceRiddenRef.current < 0.1) { endSession(); return; }
 
+    updateSession({ complete: true });
     const name   = routeNameRef.current;
     const rid    = routeIdRef.current;
     const gainRidden = elevationGain(routeProfileRef.current, distanceRiddenRef.current);
 
-    const recorder = recorderRef.current;
-    recorder.stop();
     const metrics = computeRideMetrics(recorder.samples, readFtp());
 
     const stats = {
@@ -493,6 +502,31 @@ export default function RoutePage() {
     setSummaryStats(stats);
     setShowSummary(true);
   }, [isRiding]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setWorkoutActive(isRiding);
+    return () => setWorkoutActive(false);
+  }, [isRiding, setWorkoutActive]);
+
+  useEffect(() => {
+    if (isRiding) updateSession({ elapsed: liveStats.duration, paused: isPaused });
+  }, [isRiding, liveStats.duration, isPaused, updateSession]);
+
+  // Commands are independent of telemetry sampling: the first target is sent
+  // immediately, and restored after a reconnect or resume.
+  const commandValue = rideMode === 'training' ? target.watts : Math.round(gradeAt(routeProfile, liveStats.distanceRidden) * 10) / 10;
+  useEffect(() => {
+    if (!isRiding || isPaused) {
+      if (hadControlRef.current) { hadControlRef.current = false; setResistance(0).catch(() => {}); }
+      return;
+    }
+    if (status !== 'connected') return;
+    hadControlRef.current = true;
+    return startTrainerControl({
+      send: () => rideMode === 'training' ? setTargetPower(commandValue) : setGrade(commandValue),
+      onError: setTrainerNotice,
+    });
+  }, [isRiding, isPaused, status, connectedDevice?.deviceId, rideMode, commandValue, setTargetPower, setGrade, setResistance]);
 
   // ── Ride tracking ────────────────────────────────────────────────────────────
 
@@ -540,10 +574,6 @@ export default function RoutePage() {
       setCurrentIndex(idx);
 
       const gradeRounded = Math.round(gradeAt(routeProfile, distanceRidden) * 10) / 10;
-      if (Math.abs(gradeRounded - lastGradeRef.current) >= 0.2) {
-        lastGradeRef.current = gradeRounded;
-        setGrade(gradeRounded).catch(() => {});
-      }
 
       setLiveStats({
         distanceRidden,
@@ -561,41 +591,40 @@ export default function RoutePage() {
   const handleStartRide = useCallback(async () => {
     if (guide.mode === 'prepared') await guide.enableSaved();
     distanceRiddenRef.current       = 0;
-    lastGradeRef.current            = -999;
+    startSession({ location, name: routeName, kind: 'route' });
     recorderRef.current.start();
     setCurrentIndex(0);
     setIsPaused(false);
     setLiveStats({ distanceRidden: 0, ele: routePoints[0]?.ele ?? 0, grade: 0, duration: 0 });
     setIsRiding(true);
-  }, [routePoints, guide.mode, guide.enableSaved]);
+  }, [routePoints, guide.mode, guide.enableSaved, startSession, location, routeName]);
 
   const handlePauseRide = useCallback(() => {
     recorderRef.current.pause();
     setIsPaused(true);
-    setGrade(0).catch(() => {});
-  }, [setGrade]);
+    setResistance(0).catch(() => {});
+  }, [setResistance]);
 
   const handleResumeRide = useCallback(() => {
-    lastGradeRef.current = -999;
     recorderRef.current.resume();
     setIsPaused(false);
   }, []);
 
   const handleStopRide = useCallback(() => {
     setIsPaused(false);
-    setGrade(0).catch(() => {});
+    setResistance(0).catch(() => {});
     setIsRiding(false); // triggers the summary useEffect
-  }, [setGrade]);
+  }, [setResistance]);
 
   const handleRideAgain = useCallback(() => {
+    endSession();
     setShowSummary(false);
     setSummaryStats(null);
     setCompletedRide(null);
     distanceRiddenRef.current       = 0;
-    lastGradeRef.current            = -999;
     setCurrentIndex(0);
     setLiveStats({ distanceRidden: 0, ele: routePointsRef.current[0]?.ele ?? 0, grade: 0, duration: 0 });
-  }, []);
+  }, [endSession]);
 
   const gradeClass = useMemo(() => {
     if (liveStats.grade > 5) return 'grade-hard';
@@ -670,6 +699,17 @@ export default function RoutePage() {
                 )}
 
                 <div className="route-controls">
+                  {!isRiding && <div className="route-training-setup">
+                    <label htmlFor="route-ride-mode">Ride workout</label>
+                    <select id="route-ride-mode" value={rideMode} onChange={event => setRideMode(event.target.value)}>
+                      <option value="training">Automatic endurance workout</option>
+                      <option value="terrain">Follow the route’s hills</option>
+                    </select>
+                    <p>{rideMode === 'training' ? `Automatic resistance based on your ${readFtp()} W FTP. Flat roads still have a workload.` : 'Resistance follows the route elevation. Flat roads are easier.'}</p>
+                    {rideMode === 'training' && <div className="route-training-profile" role="img" aria-label="Warm-up, endurance and tempo efforts with recoveries, then cooldown">{routeTrainingProfile().map(block => <span key={block.end} style={{ flex: block.end - block.start, height: `${Math.max(block.from, block.to) * 40}px` }} title={`${block.name}: ${Math.round(block.from * 100)}–${Math.round(block.to * 100)}% FTP`} />)}</div>}
+                  </div>}
+                  {isRiding && rideMode === 'training' && <p className="route-target-label">{target.name} · Target {target.watts} W ({target.percent}% FTP)</p>}
+                  {trainerNotice && <p role="status" className="route-control-notice">{trainerNotice}</p>}
                   <TourGuideControls guide={guide} />
                   {!isRiding ? (
                     <button
@@ -704,7 +744,7 @@ export default function RoutePage() {
 
           {/* Map + elevation */}
           <section className="route-map-section" aria-label="Route map and elevation profile">
-            {routeStats && <RideGauges telemetry={telemetry} ftp={readFtp()} />}
+            {routeStats && <RideGauges telemetry={telemetry} ftp={readFtp()} targetPower={isRiding && !isPaused && rideMode === 'training' ? target.watts : 0} />}
             <div className="map-wrapper">
               {routePoints.length === 0 ? (
                 <div className="map-placeholder">
@@ -737,7 +777,7 @@ export default function RoutePage() {
                     </button>
                   </div>
                   <RouteErrorBoundary>
-                    {viewMode === 'map' ? (
+                    {!isVisible ? null : viewMode === 'map' ? (
                       <RouteMap routePoints={routePoints} distanceKm={liveStats.distanceRidden} distanceKmRef={distanceRiddenRef} telemetryRef={telemetryRef} isFollowing={isRiding && !isPaused} tourStops={guideMarkers} photoPlaces={photoPlaces} />
                     ) : (
                       <Suspense fallback={<div className="route-3d-status">Loading 3D view…</div>}>

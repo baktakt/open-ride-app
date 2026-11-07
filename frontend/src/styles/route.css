@@ -975,3 +975,11 @@
   .route-controls { position: sticky; bottom: 0; background: #1a1a2e; }
   .ride-guide-active { padding: 8px 0; }
 }
+.route-training-setup { margin: 8px 0; text-align: left; }
+.route-training-setup label { display: block; color: #d9e7f3; font-size: .8rem; margin-bottom: 6px; }
+.route-training-setup select { width: 100%; background: #13283b; border: 1px solid #486277; border-radius: 7px; padding: 7px; color: #fff; font: inherit; font-size: .75rem; }
+.route-training-setup p, .route-target-label, .route-control-notice { color: #b9cedf; font-size: .75rem; line-height: 1.4; margin: 7px 0; }
+.route-target-label { color: #65e3c6; font-weight: 600; }
+.route-training-profile { height: 40px; display: flex; align-items: flex-end; gap: 2px; padding: 4px 0; }
+.route-training-profile span { display: block; background: #36cbb3; border-radius: 2px 2px 0 0; }
+.route-map-section .gauge-card:first-child .gauge-footer { display: block; margin: 0; font-size: .75rem; }

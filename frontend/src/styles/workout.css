@@ -115,17 +115,6 @@ body.workout-page {
   height: 100%;
 }
 
-.workout-progress-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #ff6b00;
-  box-shadow: 0 0 10px #ff6b00;
-  left: 0;
-  transition: left 0.25s linear;
-}
-
 /* Segment Info */
 .segment-info {
   display: flex;
@@ -745,3 +734,4 @@ body.workout-page {
   from { opacity: 0; transform: translate(-50%, -6px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
+.trainer-control-notice { padding: 8px 16px; color: #ffe2a6; background: #302b20; margin: 0; }

@@ -1,5 +1,7 @@
+import { useRideSession } from '../contexts/RideSessionContext';
+import { startTrainerControl } from '../services/trainerControl';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
 import { EffortGauge, MetricCard } from '../components/RideGauges';
@@ -19,11 +21,11 @@ import '../styles/workout.css';
 import '../styles/notifications.css';
 
 // Workout Graph Component
-function WorkoutGraph({ executionPlan, elapsedSeconds, totalDuration, ftp }) {
+function WorkoutGraph({ executionPlan, elapsedSeconds, totalDuration, ftp, isVisible }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    if (!canvasRef.current || !executionPlan.length) return;
+    if (!isVisible || !canvasRef.current || !executionPlan.length || canvasRef.current.offsetWidth === 0) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -87,15 +89,22 @@ function WorkoutGraph({ executionPlan, elapsedSeconds, totalDuration, ftp }) {
 
       currentX += segmentWidth;
     });
-  }, [executionPlan, totalDuration, ftp]);
+    // Timeline progress is independent of telemetry and advances even before
+    // the first ANT+ power/speed page arrives.
+    const x = Math.max(0, Math.min(cssWidth, elapsedSeconds / totalDuration * cssWidth));
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cssHeight); ctx.stroke();
+  }, [executionPlan, totalDuration, ftp, elapsedSeconds, isVisible]);
 
   return <canvas ref={canvasRef} id="workout-graph" style={{ width: '100%', height: '100%' }} />;
 }
 
-export default function WorkoutPage() {
+export default function WorkoutPage({ isVisible = true }) {
+  const location = useLocation();
+  const { startSession, updateSession, endSession } = useRideSession();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { connectedDevice, telemetry, setTargetPower, setResistance, setWorkoutActive } = useAnt();
+  const { status, connectedDevice, telemetry, setTargetPower, setResistance, setWorkoutActive } = useAnt();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
   const [workout, setWorkout] = useState(null);
@@ -115,6 +124,8 @@ export default function WorkoutPage() {
   const [completedRide, setCompletedRide] = useState(null);
   const [hasEnded, setHasEnded] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [trainerNotice, setTrainerNotice] = useState('');
+  const hadControlRef = useRef(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsForm, setSettingsForm] = useState(() => {
     try {
@@ -124,11 +135,11 @@ export default function WorkoutPage() {
     return { ftp: 200, maxHr: 185, restingHr: 60, weight: 70 };
   });
 
-  // Keep workoutActive in sync with isRunning; clear on unmount
+  // Protect the rider profile from the countdown through the end of the ride.
   useEffect(() => {
-    setWorkoutActive(isRunning && !showComplete && !hasEnded);
+    setWorkoutActive((isRunning || countdownValue !== null) && !showComplete && !hasEnded);
     return () => setWorkoutActive(false);
-  }, [isRunning, showComplete, hasEnded, setWorkoutActive]);
+  }, [isRunning, countdownValue, showComplete, hasEnded, setWorkoutActive]);
 
   const timerRef = useRef(null);
   const countdownRef = useRef(null);
@@ -142,8 +153,6 @@ export default function WorkoutPage() {
   // Distance ridden since start, from positive deltas of the trainer's counter
   const rideDistanceRef = useRef({ total: 0, last: null });
   const targetPowerRef = useRef(0);
-  // Last command sent to the trainer, to avoid resending unchanged targets
-  const lastCommandRef = useRef(null);
 
   const segmentStarts = useMemo(() => {
     let t = 0;
@@ -173,11 +182,12 @@ export default function WorkoutPage() {
   const coachMessage = activeTextEvent(textEvents, elapsedSeconds);
 
   useEffect(() => {
+    if (!isVisible) return;
     document.body.classList.add('workout-page');
     return () => {
       document.body.classList.remove('workout-page');
     };
-  }, []);
+  }, [isVisible]);
 
   useEffect(() => {
     // Load FTP from settings
@@ -322,6 +332,7 @@ export default function WorkoutPage() {
 
   const startCountdown = () => {
     if (countdownRef.current || isRunning) return;
+    startSession({ location, name: workout.name, kind: 'workout' });
     let count = getCountdownDuration();
     setCountdownValue(count);
     countdownRef.current = setInterval(() => {
@@ -368,9 +379,9 @@ export default function WorkoutPage() {
   };
 
   const startWorkout = () => {
+    startSession({ location, name: workout.name, kind: 'workout' });
     skipOffsetRef.current = 0;
     rideDistanceRef.current = { total: 0, last: null };
-    lastCommandRef.current = null;
     recorderRef.current.start();
     setElapsedSeconds(0);
     setIsRunning(true);
@@ -382,7 +393,6 @@ export default function WorkoutPage() {
   const togglePause = () => {
     if (isPaused) {
       recorderRef.current.resume();
-      lastCommandRef.current = null;
       setIsPaused(false);
       startTicker();
     } else {
@@ -427,6 +437,7 @@ export default function WorkoutPage() {
     };
 
     setIsRunning(false);
+    updateSession({ complete: true });
     setHasEnded(true);
     setTargetPower(0);
     // The history entry and the stored recording share an id so the ride can
@@ -450,27 +461,28 @@ export default function WorkoutPage() {
     setShowComplete(true);
   };
 
-  // Keep the trainer on the current target: re-evaluated every second so ramps
-  // are followed smoothly, and re-sent after a reconnect (new device id).
   useEffect(() => {
-    if (!isRunning || isPaused || !executionPlan.length) return;
-    const segment = executionPlan[currentSegmentIndex];
-    if (!segment) return;
+    if (isRunning) updateSession({ elapsed: elapsedSeconds, paused: isPaused });
+  }, [isRunning, elapsedSeconds, isPaused, updateSession]);
 
-    const deviceId = connectedDevice?.deviceId ?? null;
-    const command = segment.mode === 'erg'
-      ? { mode: 'erg', value: applyBias(targetPowerAt(segment, segmentElapsed)), deviceId }
-      : { mode: 'resistance', value: segment.resistance, deviceId };
-    targetPowerRef.current = command.mode === 'erg' ? command.value : 0;
+  const segment = executionPlan[currentSegmentIndex];
+  const commandMode = segment?.mode;
+  const commandValue = commandMode === 'erg' ? applyBias(targetPowerAt(segment, segmentElapsed)) : segment?.resistance;
+  targetPowerRef.current = commandMode === 'erg' ? commandValue : 0;
+  useEffect(() => {
+    if (!isRunning || isPaused) {
+      if (hadControlRef.current) { hadControlRef.current = false; setResistance(0).catch(() => {}); }
+      return;
+    }
+    if (status !== 'connected' || !segment) return;
+    hadControlRef.current = true;
+    return startTrainerControl({
+      send: () => commandMode === 'erg' ? setTargetPower(commandValue) : setResistance(commandValue),
+      onError: setTrainerNotice,
+    });
+  }, [isRunning, isPaused, status, connectedDevice?.deviceId, commandMode, commandValue, setTargetPower, setResistance]);
 
-    const last = lastCommandRef.current;
-    if (last && last.mode === command.mode && last.value === command.value && last.deviceId === deviceId) return;
-    if (!connectedDevice) return;
-
-    lastCommandRef.current = command;
-    if (command.mode === 'erg') setTargetPower(command.value);
-    else setResistance(command.value);
-  }, [executionPlan, currentSegmentIndex, segmentElapsed, isRunning, isPaused, intensityBias, connectedDevice]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { setResistance(0).catch(() => {}); }, [setResistance]);
 
   // Finish when the workout timeline is complete
   useEffect(() => {
@@ -491,7 +503,7 @@ export default function WorkoutPage() {
         <div className="workout-error">
           <h2>Workout unavailable</h2>
           <p>{loadError}</p>
-          <button className="btn btn-secondary" onClick={() => navigate('/')}>
+          <button className="btn btn-secondary" onClick={() => { endSession(); navigate('/'); }}>
             Back to Home
           </button>
         </div>
@@ -542,6 +554,8 @@ export default function WorkoutPage() {
     <div>
       <TopBar onDeviceScanClick={() => setIsDeviceModalOpen(true)} />
 
+      {trainerNotice && <p className="trainer-control-notice" role="status">{trainerNotice}</p>}
+      {isRunning && status !== 'connected' && <p className="trainer-control-notice" role="status">Trainer connection lost. Reconnect using Connect Devices; your workout clock is still running.</p>}
       {showPreview ? (
         <main id="main-content" className="workout-preview">
           <div className="preview-content">
@@ -562,11 +576,11 @@ export default function WorkoutPage() {
             <button
               className="btn btn-primary btn-large"
               onClick={startCountdown}
-              disabled={!connectedDevice}
+              disabled={status !== 'connected'}
             >
               Start Ride
             </button>
-            {!connectedDevice && (
+            {status !== 'connected' && (
               <p className="hint-text">Connect a trainer to start</p>
             )}
           </div>
@@ -574,11 +588,7 @@ export default function WorkoutPage() {
       ) : (
       <main id="main-content" className="workout-main">
         <div className="workout-graph-container">
-          <WorkoutGraph executionPlan={executionPlan} elapsedSeconds={elapsedSeconds} totalDuration={totalDuration} ftp={ftp} />
-          <div
-            className="workout-progress-line"
-            style={{ left: `${(elapsedSeconds / totalDuration) * 100}%` }}
-          ></div>
+          <WorkoutGraph executionPlan={executionPlan} elapsedSeconds={elapsedSeconds} totalDuration={totalDuration} ftp={ftp} isVisible={isVisible} />
           {coachMessage && (
             <div className="coach-message" role="status" key={`${coachMessage.time}-${coachMessage.message}`}>
               {coachMessage.message}
@@ -908,8 +918,8 @@ export default function WorkoutPage() {
             )}
 
             <div className="complete-actions">
-              <button className="complete-btn secondary" onClick={() => navigate('/')}>Back to Home</button>
-              <button className="complete-btn primary" onClick={() => window.location.reload()}>Ride Again</button>
+              <button className="complete-btn secondary" onClick={() => { endSession(); navigate('/'); }}>Back to Home</button>
+              <button className="complete-btn primary" onClick={() => { endSession(); setShowComplete(false); setHasEnded(false); setElapsedSeconds(0); setCompletedRide(null); setCompleteStats(null); }}>Ride Again</button>
             </div>
           </div>
         </div>

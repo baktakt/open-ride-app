@@ -316,6 +316,30 @@ Progress along the route is tracked using your reported speed (from the trainer)
 
 **Storage:** Saved routes live in the browser's IndexedDB under the `openride` database, `routes` store. They are scoped per user profile. Route ride history (completed ride summaries) is stored in localStorage under `openride_route_history`.
 
+### Route workouts and active sessions
+
+Route rides default to an **Automatic endurance workout**, scaled to the rider’s
+FTP in Settings. The workload is applied automatically: a progressive warm-up,
+70–75% FTP endurance sections, short 80–85% efforts, easier recoveries and a
+cooldown. Sections follow route progress so the whole profile fits the ride.
+Flat roads still have a target workload; no screen or resistance adjustment is
+needed while riding. The target and current section are shown alongside power.
+Choose **Follow the route’s hills** before starting for terrain simulation instead.
+Pausing, ending or leaving a finished activity releases the trainer’s workload.
+
+A running workout or route stays mounted while visiting another Open Ride screen.
+The **Active session** bar shows its elapsed time and offers **Return to ride**;
+its clock, recording, trainer control and guide continue. Only one activity runs
+at a time. A completed session can be revisited for its summary or dismissed.
+Live session continuity applies to in-app navigation, not closing or reloading
+the tab.
+
+The ANT+ manager opens a granted dongle once, remembers the last connected trainer
+and attempts to restore it after a reload. Explicit Disconnect forgets that trainer.
+Normal screen navigation keeps the same hardware manager. Failed trainer commands
+are retried automatically and accepted commands are refreshed periodically. Real
+hardware still requires an attached dongle and browser USB permission.
+
 ### Curated story rides
 
 **Explore routes** contains Open Ride’s handpicked collection. Each ride includes

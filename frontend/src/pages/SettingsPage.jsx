@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import DeviceModal from '../components/DeviceModal';
 import { openDB } from '../services/db';
+import { setEmulatorMode } from '../services/antManager';
 import { loadAiSettings, saveAiSettings } from '../services/aiWorkoutGenerator';
 import { downloadExport, importFromFile, loadCustomWorkouts } from '../services/dataManager';
 import '../styles/settings.css';
@@ -16,7 +17,6 @@ const DEFAULT_SETTINGS = {
   bikeWeight: 8,
   wheelCircumference: 2105,
   units: 'metric',
-  autoConnect: false,
   soundEffects: true,
   countdownDuration: 3,
   lastDeviceId: null
@@ -169,7 +169,7 @@ export default function SettingsPage() {
   const handleEmulatorToggle = () => {
     const nextValue = !useEmulator;
     setUseEmulator(nextValue);
-    localStorage.setItem('openride_use_emulator', nextValue ? 'true' : 'false');
+    setEmulatorMode(nextValue);
   };
 
   return (
@@ -379,19 +379,8 @@ export default function SettingsPage() {
 
                 <div className="setting-row">
                   <div className="setting-info">
-                    <label htmlFor="auto-connect">Auto-connect to Last Device</label>
-                    <p className="setting-description">Automatically connect to the last used trainer on startup.</p>
-                  </div>
-                  <div className="setting-input">
-                    <label className="toggle">
-                      <input
-                        type="checkbox"
-                        id="auto-connect"
-                        checked={form.autoConnect}
-                        onChange={(e) => setForm(prev => ({ ...prev, autoConnect: e.target.checked }))}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
+                    <label>Trainer connection</label>
+                    <p className="setting-description">Your trainer stays connected as you move between screens. The last ANT+ trainer reconnects when you reopen the app, until you choose Disconnect.</p>
                   </div>
                 </div>
 

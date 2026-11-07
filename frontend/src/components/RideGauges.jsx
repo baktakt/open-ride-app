@@ -26,10 +26,10 @@ export function MetricCard({ label, value, unit, className = '' }) {
   return <div className={`metric-card ${className}`}><div className="metric-label">{label}</div><div className="metric-value"><span>{value}</span><span className="metric-unit">{unit}</span></div></div>;
 }
 
-export default function RideGauges({ telemetry, ftp = 200 }) {
+export default function RideGauges({ telemetry, ftp = 200, targetPower = 0 }) {
   return <div className="workout-metrics">
     <div className="metrics-top">
-      <EffortGauge label="POWER" value={Math.round(telemetry.power || 0)} unit="W" freeMax={ftp * 2} />
+      <EffortGauge label="POWER" value={Math.round(telemetry.power || 0)} unit="W" target={targetPower} freeMax={ftp * 2} />
       <EffortGauge label="CADENCE" value={Math.round(telemetry.cadence || 0)} unit="rpm" freeMax={160} />
     </div>
     <div className="metrics-bottom">
