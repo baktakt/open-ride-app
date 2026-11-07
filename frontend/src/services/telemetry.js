@@ -31,6 +31,7 @@ export function mergeTelemetry(prev, data, lastSeen, now) {
   for (const [field, source] of Object.entries(TELEMETRY_FIELDS)) {
     const value = data[source];
     if (typeof value === 'number' && Number.isFinite(value)) {
+      if (field === 'power') next.hasPower = true;
       next[field] = value;
       lastSeen[field] = now;
     } else if (!CUMULATIVE_FIELDS.has(field) && now - (lastSeen[field] ?? 0) > STALE_AFTER_MS) {

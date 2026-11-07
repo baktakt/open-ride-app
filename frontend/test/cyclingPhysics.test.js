@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { speedFromPower } from '../src/services/cyclingPhysics.js';
+import { routeSpeedKmh, speedFromPower } from '../src/services/cyclingPhysics.js';
 
 const kmh = ms => ms * 3.6;
 
@@ -21,4 +21,14 @@ test('descending without pedalling still moves', () => {
 
 test('no power on the flat means standing still', () => {
   assert.equal(speedFromPower(0, 0), 0);
+});
+
+test('route progress depends on power and gradient regardless of cog, with a speed-only fallback', () => {
+  const trainer = { hasPower: true, power: 160, speed: 20 };
+  const speed = routeSpeedKmh(trainer, 0, 82, true);
+  assert.equal(routeSpeedKmh({ ...trainer, speed: 40 }, 0, 82, true), speed);
+  assert.ok(routeSpeedKmh(trainer, 5, 82, true) < speed);
+  assert.equal(routeSpeedKmh({ ...trainer, power: 0 }, 0, 82, true), 0);
+  assert.equal(routeSpeedKmh(trainer, -5, 82, false), 0);
+  assert.equal(routeSpeedKmh({ speed: 18 }, 0, 82, true), 18);
 });

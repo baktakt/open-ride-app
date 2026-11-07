@@ -34,7 +34,7 @@ export default function RideGauges({ telemetry, ftp = 200, targetPower = 0 }) {
     </div>
     <div className="metrics-bottom">
       <MetricCard label="HEART RATE" value={telemetry.heartRate || '--'} unit="bpm" className="heart-rate" />
-      <MetricCard label="SPEED" value={(telemetry.speed || 0).toFixed(1)} unit="km/h" className="speed" />
+      <MetricCard label="ROUTE SPEED" value={(telemetry.speed || 0).toFixed(1)} unit="km/h" className="speed" />
     </div>
   </div>;
 }

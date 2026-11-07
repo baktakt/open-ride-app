@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initializeTrainerOnce, restoreTrainerSession, ANT_DEVICE_KEY } from '../src/services/trainerSession.js';
+import { EventEmitter } from 'node:events';
+import { recoverRideTrainer, initializeTrainerOnce, restoreTrainerSession, ANT_DEVICE_KEY } from '../src/services/trainerSession.js';
 import { AntManagerWebUSB } from '../src/services/antManagerWebUSB.js';
 
 const storage = value => ({ getItem: key => key === ANT_DEVICE_KEY ? value : null });
@@ -37,4 +38,53 @@ test('an explicit disconnect or invalid saved ID never reconnects a trainer', as
     const manager = { async initialize() { return true; }, connect: assert.fail };
     assert.equal(await restoreTrainerSession(manager, { storage: storage(value), deviceKey: ANT_DEVICE_KEY }), false);
   }
+});
+
+function radio() {
+  const manager = Object.assign(new EventEmitter(), { connectionStatus: 'disconnected', scanStatus: 'idle', dongleStatus: 'connected' });
+  const jobs = new Map();
+  const stop = recoverRideTrainer(manager, () => '12345', {
+    schedule(fn, delay) { jobs.set(fn, delay); return fn; },
+    cancel(fn) { jobs.delete(fn); },
+  });
+  const next = async () => {
+    const [fn, delay] = Array.from(jobs)[0];
+    jobs.delete(fn);
+    await fn();
+    return delay;
+  };
+  return { manager, jobs, stop, next };
+}
+
+test('a dropped channel retries the paired trainer with bounded backoff and resets after real telemetry', async () => {
+  const { manager, jobs, stop, next } = radio();
+  manager.connect = async (id, recovery) => { assert.equal(id, 12345); assert.equal(recovery, true); return false; };
+  manager.emit('radio_lost', 12345);
+  manager.emit('radio_lost', 12345);
+  assert.equal(jobs.size, 1);
+  assert.deepEqual([await next(), await next(), await next()], [2000, 4000, 8000]);
+  assert.equal(jobs.size, 0);
+  manager.emit('telemetry', {});
+  manager.emit('radio_lost', 12345);
+  assert.equal(await next(), 2000);
+  stop();
+  assert.equal(jobs.size, 0);
+});
+
+test('manual disconnect, unplugging USB, scanning, or ending the ride cancels radio recovery', async () => {
+  const { manager, jobs, stop, next } = radio();
+  manager.connect = assert.fail;
+  manager.emit('radio_lost', 12345);
+  manager.emit('manual_connection');
+  assert.equal(jobs.size, 0);
+  manager.emit('radio_lost', 12345);
+  manager.scanStatus = 'scanning';
+  await next();
+  manager.scanStatus = 'idle';
+  manager.emit('radio_lost', 12345);
+  manager.dongleStatus = 'disconnected';
+  await next();
+  stop();
+  manager.emit('radio_lost', 12345);
+  assert.equal(jobs.size, 0);
 });

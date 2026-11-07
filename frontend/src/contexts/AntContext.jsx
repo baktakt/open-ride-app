@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { ANT_DEVICE_KEY, EMULATOR_DEVICE_KEY, restoreTrainerSession } from '../services/trainerSession';
+import { ANT_DEVICE_KEY, EMULATOR_DEVICE_KEY, recoverRideTrainer, restoreTrainerSession } from '../services/trainerSession';
 import { getAntManager, isEmulatorMode } from '../services/antManager';
 import { BluetoothManagerWebBluetooth } from '../services/bluetoothManagerWebBluetooth';
 import { HeartRateMonitorWebBluetooth } from '../services/heartRateMonitorWebBluetooth';
@@ -39,6 +39,7 @@ export function AntProvider({ children }) {
   const [discoveredDevices, setDiscoveredDevices] = useState([]);
   const [connectedDevice,   setConnectedDevice]   = useState(null);
   const [telemetry,         setTelemetry]         = useState(EMPTY_TELEMETRY);
+  const [trainerSignalFresh, setTrainerSignalFresh] = useState(false);
   const telemetryLastSeenRef = useRef({});
 
   // Ref so event handlers always access the latest discovered devices without
@@ -50,6 +51,8 @@ export function AntProvider({ children }) {
   useEffect(() => {
     const manager = connectionType === 'bluetooth' ? bluetoothManager : antManager;
 
+    let lastPacket = 0;
+    setTrainerSignalFresh(false);
     // Reset shared state when switching managers
     setStatus('disconnected');
     setIsScanning(false);
@@ -74,6 +77,8 @@ export function AntProvider({ children }) {
         }
       } else if (statusObj.connection === 'disconnected' || statusObj.connection === 'connecting') {
         if (statusObj.connection !== 'connecting') {
+          lastPacket = 0;
+          setTrainerSignalFresh(false);
           setConnectedDevice(null);
           setTelemetry(EMPTY_TELEMETRY);
           telemetryLastSeenRef.current = {};
@@ -98,16 +103,26 @@ export function AntProvider({ children }) {
 
     const handleTelemetry = (data) => {
       const now = Date.now();
+      lastPacket = now;
+      setTrainerSignalFresh(true);
       // A dedicated heart rate strap takes precedence over trainer-relayed HR
       const merged = hrmConnectedRef.current ? { ...data, heartRate: undefined } : data;
       setTelemetry(prev => mergeTelemetry(prev, merged, telemetryLastSeenRef.current, now));
     };
 
+    const watchdog = setInterval(() => {
+      if (lastPacket && Date.now() - lastPacket > 5000) {
+        lastPacket = 0;
+        setTrainerSignalFresh(false);
+        setTelemetry(prev => mergeTelemetry(prev, {}, telemetryLastSeenRef.current, Date.now()));
+      }
+    }, 1000);
     manager.on('status',           handleStatus);
     manager.on('device_discovered', handleDeviceDiscovered);
     manager.on('telemetry',         handleTelemetry);
 
     return () => {
+      clearInterval(watchdog);
       manager.off('status',           handleStatus);
       manager.off('device_discovered', handleDeviceDiscovered);
       manager.off('telemetry',         handleTelemetry);
@@ -144,6 +159,11 @@ export function AntProvider({ children }) {
       });
     }
   }, [antManager, connectionType, deviceKey]);
+
+  useEffect(() => {
+    if (!workoutActive || connectionType !== 'ant+' || deviceKey !== ANT_DEVICE_KEY) return;
+    return recoverRideTrainer(antManager, () => localStorage.getItem(deviceKey));
+  }, [workoutActive, connectionType, antManager, deviceKey]);
 
   // ── Helper: resolve the active manager ────────────────────────────────────
   const _activeManager = useCallback(() => {
@@ -238,6 +258,7 @@ export function AntProvider({ children }) {
 
   const value = {
     // State
+    trainerSignalFresh,
     workoutActive,
     setWorkoutActive,
     status,

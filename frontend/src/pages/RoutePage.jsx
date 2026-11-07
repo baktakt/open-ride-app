@@ -1,3 +1,4 @@
+import { routeSpeedKmh } from '../services/cyclingPhysics';
 import { useRideSession } from '../contexts/RideSessionContext';
 import { startTrainerControl } from '../services/trainerControl';
 import { routeTrainingTarget, routeTrainingProfile } from '../services/routeTraining';
@@ -321,7 +322,7 @@ function loadSavedRoute() {
 export default function RoutePage({ isVisible = true }) {
   const location = useLocation();
   const { startSession, updateSession, endSession } = useRideSession();
-  const { telemetry, setGrade, setTargetPower, setResistance, status, connectedDevice, setWorkoutActive } = useAnt();
+  const { telemetry, trainerSignalFresh, setGrade, setTargetPower, setResistance, status, connectedDevice, setWorkoutActive } = useAnt();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -372,8 +373,15 @@ export default function RoutePage({ isVisible = true }) {
   const routeNameRef    = useRef(routeName);
   const routeIdRef      = useRef(routeId);
 
-  // Keep telemetry refs current for interval
-  useEffect(() => { telemetryRef.current = telemetry; }, [telemetry]);
+  const [mass] = useState(() => {
+    try {
+      const settings = JSON.parse(localStorage.getItem('openride_settings') || '{}');
+      return (Number(settings.weight) || 75) + (Number(settings.bikeWeight) || 8);
+    } catch { return 83; }
+  });
+  const movingSpeed = routeSpeedKmh(telemetry, liveStats.grade, mass, trainerSignalFresh && status === 'connected' && isRiding && !isPaused);
+  // One speed drives the gauge, recorded samples, distance and both map cameras.
+  useEffect(() => { telemetryRef.current = { ...telemetry, speed: movingSpeed }; }, [telemetry, movingSpeed]);
 
   // Keep route info refs current
   useEffect(() => { routePointsRef.current = routePoints; }, [routePoints]);
@@ -515,18 +523,22 @@ export default function RoutePage({ isVisible = true }) {
   // Commands are independent of telemetry sampling: the first target is sent
   // immediately, and restored after a reconnect or resume.
   const commandValue = rideMode === 'training' ? target.watts : Math.round(gradeAt(routeProfile, liveStats.distanceRidden) * 10) / 10;
+  // Read the latest target on each send; a ramp must not start overlapping writes.
+  const controlTarget = useRef(null);
+  controlTarget.current = { mode: rideMode, value: commandValue };
   useEffect(() => {
     if (!isRiding || isPaused) {
+      setTrainerNotice('');
       if (hadControlRef.current) { hadControlRef.current = false; setResistance(0).catch(() => {}); }
       return;
     }
     if (status !== 'connected') return;
     hadControlRef.current = true;
     return startTrainerControl({
-      send: () => rideMode === 'training' ? setTargetPower(commandValue) : setGrade(commandValue),
+      send: () => controlTarget.current.mode === 'training' ? setTargetPower(controlTarget.current.value) : setGrade(controlTarget.current.value),
       onError: setTrainerNotice,
     });
-  }, [isRiding, isPaused, status, connectedDevice?.deviceId, rideMode, commandValue, setTargetPower, setGrade, setResistance]);
+  }, [isRiding, isPaused, status, connectedDevice?.deviceId, setTargetPower, setGrade, setResistance]);
 
   // ── Ride tracking ────────────────────────────────────────────────────────────
 
@@ -543,7 +555,7 @@ export default function RoutePage({ isVisible = true }) {
       // speed is km/h → km per second × seconds elapsed
       const previousDistance = distanceRiddenRef.current;
       const stepKm = telemetryRef.current.speed / 3600;
-      distanceRiddenRef.current += stepKm * added;
+      distanceRiddenRef.current = Math.min(routeStats.totalDistance, previousDistance + stepKm * added);
 
       // Place each new second on the route, for map-based exports
       const samples = recorder.samples;
@@ -709,7 +721,8 @@ export default function RoutePage({ isVisible = true }) {
                     {rideMode === 'training' && <div className="route-training-profile" role="img" aria-label="Warm-up, endurance and tempo efforts with recoveries, then cooldown">{routeTrainingProfile().map(block => <span key={block.end} style={{ flex: block.end - block.start, height: `${Math.max(block.from, block.to) * 40}px` }} title={`${block.name}: ${Math.round(block.from * 100)}–${Math.round(block.to * 100)}% FTP`} />)}</div>}
                   </div>}
                   {isRiding && rideMode === 'training' && <p className="route-target-label">{target.name} · Target {target.watts} W ({target.percent}% FTP)</p>}
-                  {trainerNotice && <p role="status" className="route-control-notice">{trainerNotice}</p>}
+                  {isRiding && status !== 'connected' && <p role="status" className="route-control-notice">Trainer connection lost. Your ride is still open. Use Connect Devices if the trainer doesn’t return.</p>}
+                  {isRiding && !isPaused && status === 'connected' && trainerNotice && <p role="status" className="route-control-notice">{trainerNotice}</p>}
                   <TourGuideControls guide={guide} />
                   {!isRiding ? (
                     <button
@@ -744,7 +757,7 @@ export default function RoutePage({ isVisible = true }) {
 
           {/* Map + elevation */}
           <section className="route-map-section" aria-label="Route map and elevation profile">
-            {routeStats && <RideGauges telemetry={telemetry} ftp={readFtp()} targetPower={isRiding && !isPaused && rideMode === 'training' ? target.watts : 0} />}
+            {routeStats && <RideGauges telemetry={{ ...telemetry, speed: movingSpeed }} ftp={readFtp()} targetPower={isRiding && !isPaused && rideMode === 'training' ? target.watts : 0} />}
             <div className="map-wrapper">
               {routePoints.length === 0 ? (
                 <div className="map-placeholder">

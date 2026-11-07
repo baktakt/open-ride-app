@@ -183,6 +183,7 @@ export class AntManagerWebUSB extends EventEmitter {
    * Start scanning for FE-C devices
    */
   async startScan() {
+    this.emit('manual_connection');
     if (!this.stick || this._dongleStatus !== 'connected') {
       this.log('error', 'Cannot scan: dongle not connected');
       return false;
@@ -304,7 +305,9 @@ export class AntManagerWebUSB extends EventEmitter {
   /**
    * Connect to a specific device
    */
-  async connect(deviceId) {
+  async connect(deviceId, recovery = false) {
+    if (!recovery) this.emit('manual_connection');
+    if (this._connectionStatus === 'connecting') return false;
     if (!this.stick || this._dongleStatus !== 'connected') {
       this.log('error', 'Cannot connect: dongle not connected');
       return false;
@@ -330,7 +333,13 @@ export class AntManagerWebUSB extends EventEmitter {
     this.pageCounters.clear();
 
     try {
-      this.sensor = new FitnessEquipmentSensor(this.stick);
+      const stick = this.stick;
+      // The library subscribes the sensor to the stick until its channel closes.
+      const before = new Set(stick.listeners('read'));
+      const sensor = this.sensor = new FitnessEquipmentSensor(stick);
+      const readers = stick.listeners('read').filter(listener => !before.has(listener));
+      const releaseReaders = () => readers.forEach(listener => stick.off('read', listener));
+      this.releaseSensorReaders = releaseReaders;
 
       // Handle telemetry data
       this.sensor.on('fitnessData', (state) => {
@@ -344,9 +353,15 @@ export class AntManagerWebUSB extends EventEmitter {
       });
 
       this.sensor.on('detached', () => {
+        releaseReaders();
+        if (sensor !== this.sensor || stick !== this.stick) return;
+        // An unsolicited channel unassignment does not release the driver's slot.
+        stick.detach(sensor).catch(() => {});
+        this.sensor = null;
+        this._connectedDeviceId = null;
         this.log('info', 'Sensor detached');
         this.setConnectionStatus('disconnected');
-        this._connectedDeviceId = null;
+        this.emit('radio_lost', deviceId);
       });
 
       this.sensor.on('error', (err) => {
@@ -360,6 +375,8 @@ export class AntManagerWebUSB extends EventEmitter {
       this.log('info', `Connected to device ${deviceId}`);
       return true;
     } catch (err) {
+      this.releaseSensorReaders?.();
+      this.sensor = null;
       this.log('error', `Failed to connect: ${err.message}`);
       this.setConnectionStatus('disconnected');
       return false;
@@ -370,10 +387,12 @@ export class AntManagerWebUSB extends EventEmitter {
    * Disconnect from current device
    */
   async disconnect() {
+    this.emit('manual_connection');
     if (this.sensor) {
       this.log('info', 'Disconnecting...');
       try {
         this.sensor.removeAllListeners();
+        if (this.releaseSensorReaders) this.sensor.once('detached', this.releaseSensorReaders);
         await this.sensor.detach();
       } catch (err) {
         this.log('warn', `Error during sensor detach: ${err.message}`);

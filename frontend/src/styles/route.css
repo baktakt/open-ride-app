@@ -825,7 +825,7 @@
   .route-library { position: absolute; left: 12px; right: 12px; top: 100px; z-index: 5; background: var(--card-bg); box-shadow: 0 8px 24px #0008; }
   .route-library-list { max-height: min(280px, 45dvh); }
 
-  .route-map-section { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(220px, 19vw, 340px); grid-template-rows: 138px minmax(0, 1fr) 92px; gap: 12px; }
+  .route-map-section { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(220px, 19vw, 340px); grid-template-rows: max-content minmax(0, 1fr) 92px; gap: 12px; }
   .route-map-section > .workout-metrics { grid-column: 1 / -1; display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr; gap: 12px; min-height: 0; }
   .route-map-section .metrics-top, .route-map-section .metrics-bottom { display: contents; }
   .route-map-section .metric-card { min-width: 0; padding: 12px 16px; gap: 8px; }
