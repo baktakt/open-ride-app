@@ -1,0 +1,11 @@
+{
+  "model": "hexgrad/Kokoro-82M",
+  "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+  "voice": "bm_george",
+  "speed": 1.0,
+  "device": "NVIDIA GeForce RTX 3090",
+  "torch": "2.15.0+cu132",
+  "peakAllocatedMiB": 1024.2,
+  "clips": 11,
+  "narrationSeconds": 342.25
+}

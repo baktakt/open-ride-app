@@ -345,7 +345,7 @@ hardware still requires an attached dongle and browser USB permission.
 **Explore routes** contains Open Ride’s handpicked collection. Each ride includes
 7–12 reviewed chapters, prerecorded English narration, short captions and matching
 landmark photos. Cards show estimated ride time, story count and narration duration;
-quiet riding separates the chapters. All five rides have opening and closing stories,
+quiet riding separates the chapters. All rides have opening and closing stories,
 with chapter gaps of roughly eleven minutes or less at their stated reference pace.
 These are indoor interpretations, not outdoor navigation instructions or certified
 race courses. The Whitechapel ride is non-graphic and focuses on people and evidence.
@@ -371,6 +371,11 @@ or personal-route upload endpoint. Vercel Blob and AI keys are not needed to ser
 curated rides. Earlier cloud-guide endpoints are disabled.
 
 ### Author a narrated ride with Hermes
+
+For a complete example with a reusable **CUDA GPU** voice workflow, see
+[Oxford: The Names at the End of the Quest](docs/rides/oxford-last-page.md), its
+[sourced transcript](docs/rides/oxford-last-page-transcript.md) and
+[matching captions](docs/rides/oxford-last-page-captions.json).
 
 **Format:** GPX is the standard track format for a rider’s personal, local route. A ride in **Explore routes** uses **Open Ride JSON v1**: an ordered track, distance-triggered chapters, and one prerecorded WAV per chapter. There is no public upload API. Deliver a curated ride as a Git pull request; once merged and deployed, everyone can ride it without a model download or API key.
 

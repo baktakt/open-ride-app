@@ -1,0 +1,711 @@
+{
+  "routeId": "18c51b01-1266-4cd7-8d6c-e7d7ca3bbf73",
+  "guideId": "55302243-b89b-4bb3-88fb-938aa3caab57",
+  "timing": "approximate relative text length, matching app",
+  "chapters": [
+    {
+      "id": "e5e6aa6b-2a35-4ce0-aae3-1cdb5c1f391d",
+      "title": "Two names waiting at the finish",
+      "distanceKm": 0,
+      "audioSeconds": 26.575,
+      "text": "Somewhere ahead, on a real Oxford gravestone, a husband and wife have two extra names. Not titles. Not nicknames from the pub. Names from Middle-earth. By the finish, you will know why. We begin beside Exeter College, where Tolkien studied. Our quest follows the making of an imaginary world, but the treasure is something he found in this one. Hands on the bars; no riddles to type, no choices to tap. First question: what does a future world-builder do when his first plan goes wrong?",
+      "cues": [
+        {
+          "text": "Somewhere ahead, on a real Oxford gravestone, a husband and wife have two",
+          "startSeconds": 0,
+          "endSeconds": 4.084157894736842
+        },
+        {
+          "text": "extra names.",
+          "startSeconds": 4.084157894736842,
+          "endSeconds": 4.755526315789473
+        },
+        {
+          "text": "Not titles.",
+          "startSeconds": 4.755526315789473,
+          "endSeconds": 5.370947368421052
+        },
+        {
+          "text": "Not nicknames from the pub.",
+          "startSeconds": 5.370947368421052,
+          "endSeconds": 6.881526315789474
+        },
+        {
+          "text": "Names from Middle-earth.",
+          "startSeconds": 6.881526315789474,
+          "endSeconds": 8.224263157894736
+        },
+        {
+          "text": "By the finish, you will know why.",
+          "startSeconds": 8.224263157894736,
+          "endSeconds": 10.070526315789474
+        },
+        {
+          "text": "We begin beside Exeter College, where Tolkien studied.",
+          "startSeconds": 10.070526315789474,
+          "endSeconds": 13.091684210526315
+        },
+        {
+          "text": "Our quest follows the making of an imaginary world, but the treasure is",
+          "startSeconds": 13.091684210526315,
+          "endSeconds": 17.06394736842105
+        },
+        {
+          "text": "something he found in this one.",
+          "startSeconds": 17.06394736842105,
+          "endSeconds": 18.798315789473683
+        },
+        {
+          "text": "Hands on the bars; no riddles to type, no choices to tap.",
+          "startSeconds": 18.798315789473683,
+          "endSeconds": 21.987315789473683
+        },
+        {
+          "text": "First question: what does a future world-builder do when his first plan goes",
+          "startSeconds": 21.987315789473683,
+          "endSeconds": 26.239315789473682
+        },
+        {
+          "text": "wrong?",
+          "startSeconds": 26.239315789473682,
+          "endSeconds": 26.575
+        }
+      ]
+    },
+    {
+      "id": "97ca7121-445c-4ac4-aa50-1489299ca25c",
+      "title": "The wrong degree, the right obsession",
+      "distanceKm": 1.65,
+      "audioSeconds": 32.8,
+      "text": "Exeter is behind us; this is a chapter from Tolkien's student years, not another landmark beside the road. He began with classics, then switched to English after disappointing examination results. Languages were the thing that caught fire. He had already been inventing his own for fun. Imagine finding your life's work through the subject that distracted you from your supposed life's work. A respectable career plan had met an inconvenient obsession. But an invented language still needed somebody to speak it. Where would those people come from?",
+      "cues": [
+        {
+          "text": "Exeter is behind us; this is a chapter from Tolkien's student years, not",
+          "startSeconds": 0,
+          "endSeconds": 4.389591078066914
+        },
+        {
+          "text": "another landmark beside the road.",
+          "startSeconds": 4.389591078066914,
+          "endSeconds": 6.401486988847583
+        },
+        {
+          "text": "He began with classics, then switched to English after disappointing",
+          "startSeconds": 6.401486988847583,
+          "endSeconds": 10.54721189591078
+        },
+        {
+          "text": "examination results.",
+          "startSeconds": 10.54721189591078,
+          "endSeconds": 11.766542750929366
+        },
+        {
+          "text": "Languages were the thing that caught fire.",
+          "startSeconds": 11.766542750929366,
+          "endSeconds": 14.327137546468402
+        },
+        {
+          "text": "He had already been inventing his own for fun.",
+          "startSeconds": 14.327137546468402,
+          "endSeconds": 17.13159851301115
+        },
+        {
+          "text": "Imagine finding your life's work through the subject that distracted you",
+          "startSeconds": 17.13159851301115,
+          "endSeconds": 21.521189591078063
+        },
+        {
+          "text": "from your supposed life's work.",
+          "startSeconds": 21.521189591078063,
+          "endSeconds": 23.411152416356874
+        },
+        {
+          "text": "A respectable career plan had met an inconvenient obsession.",
+          "startSeconds": 23.411152416356874,
+          "endSeconds": 27.069144981412638
+        },
+        {
+          "text": "But an invented language still needed somebody to speak it.",
+          "startSeconds": 27.069144981412638,
+          "endSeconds": 30.66617100371747
+        },
+        {
+          "text": "Where would those people come from?",
+          "startSeconds": 30.66617100371747,
+          "endSeconds": 32.8
+        }
+      ]
+    },
+    {
+      "id": "31dd7605-fb16-49d6-ab8a-5cee32cf2313",
+      "title": "A world does not arrive fully built",
+      "distanceKm": 3.3,
+      "audioSeconds": 32.775,
+      "text": "On this east Oxford stretch, our story briefly leaves the city. Tolkien married Edith in 1916, then served on the Somme. Illness brought him back to England. Friends from his school literary circle had been killed. His early mythology took shape around this period of war and recovery. That does not make suffering a useful writing exercise. It means the imaginary world was being made by someone who knew real loss. Keep that distinction. Later, an apparently ridiculous little creature would find a way into that enormous world.",
+      "cues": [
+        {
+          "text": "On this east Oxford stretch, our story briefly leaves the city.",
+          "startSeconds": 0,
+          "endSeconds": 3.963195777351247
+        },
+        {
+          "text": "Tolkien married Edith in 1916, then served on the Somme.",
+          "startSeconds": 3.963195777351247,
+          "endSeconds": 7.486036468330134
+        },
+        {
+          "text": "Illness brought him back to England.",
+          "startSeconds": 7.486036468330134,
+          "endSeconds": 9.750719769673703
+        },
+        {
+          "text": "Friends from his school literary circle had been killed.",
+          "startSeconds": 9.750719769673703,
+          "endSeconds": 13.273560460652591
+        },
+        {
+          "text": "His early mythology took shape around this period of war and recovery.",
+          "startSeconds": 13.273560460652591,
+          "endSeconds": 17.6771113243762
+        },
+        {
+          "text": "That does not make suffering a useful writing exercise.",
+          "startSeconds": 17.6771113243762,
+          "endSeconds": 21.137044145873322
+        },
+        {
+          "text": "It means the imaginary world was being made by someone who knew real loss.",
+          "startSeconds": 21.137044145873322,
+          "endSeconds": 25.79222648752399
+        },
+        {
+          "text": "Keep that distinction.",
+          "startSeconds": 25.79222648752399,
+          "endSeconds": 27.17619961612284
+        },
+        {
+          "text": "Later, an apparently ridiculous little creature would find a way into that",
+          "startSeconds": 27.17619961612284,
+          "endSeconds": 31.83138195777351
+        },
+        {
+          "text": "enormous world.",
+          "startSeconds": 31.83138195777351,
+          "endSeconds": 32.775
+        }
+      ]
+    },
+    {
+      "id": "ea06cf7f-e2a0-4c21-bd5b-2d67aee9c46b",
+      "title": "The most productive blank page in marking",
+      "distanceKm": 4.95,
+      "audioSeconds": 27.925,
+      "text": "While we ride north through Marston, jump forward to a pile of examination papers. According to Tolkien's own account, a candidate had left a page blank. He used it to write the first sentence of The Hobbit. A small rebellion against marking became a question he wanted answered: what exactly was a hobbit? No prophecy. No lightning bolt. Just an empty page at work. The grand mythology had acquired a suspiciously domestic front door. Now somebody needed to persuade him to finish the thing.",
+      "cues": [
+        {
+          "text": "While we ride north through Marston, jump forward to a pile of examination",
+          "startSeconds": 0,
+          "endSeconds": 4.287240663900415
+        },
+        {
+          "text": "papers.",
+          "startSeconds": 4.287240663900415,
+          "endSeconds": 4.692790456431536
+        },
+        {
+          "text": "According to Tolkien's own account, a candidate had left a page blank.",
+          "startSeconds": 4.692790456431536,
+          "endSeconds": 8.74828838174274
+        },
+        {
+          "text": "He used it to write the first sentence of The Hobbit.",
+          "startSeconds": 8.74828838174274,
+          "endSeconds": 11.818879668049792
+        },
+        {
+          "text": "A small rebellion against marking became a question he wanted answered: what",
+          "startSeconds": 11.818879668049792,
+          "endSeconds": 16.221991701244814
+        },
+        {
+          "text": "exactly was a hobbit?",
+          "startSeconds": 16.221991701244814,
+          "endSeconds": 17.438641078838174
+        },
+        {
+          "text": "No prophecy.",
+          "startSeconds": 17.438641078838174,
+          "endSeconds": 18.13386929460581
+        },
+        {
+          "text": "No lightning bolt.",
+          "startSeconds": 18.13386929460581,
+          "endSeconds": 19.17671161825726
+        },
+        {
+          "text": "Just an empty page at work.",
+          "startSeconds": 19.17671161825726,
+          "endSeconds": 20.740975103734442
+        },
+        {
+          "text": "The grand mythology had acquired a suspiciously domestic front door.",
+          "startSeconds": 20.740975103734442,
+          "endSeconds": 24.680601659751037
+        },
+        {
+          "text": "Now somebody needed to persuade him to finish the thing.",
+          "startSeconds": 24.680601659751037,
+          "endSeconds": 27.925
+        }
+      ]
+    },
+    {
+      "id": "69913f23-44b0-4818-a40e-d434c3dced12",
+      "title": "The gatekeeper was ten",
+      "distanceKm": 6.6,
+      "audioSeconds": 35,
+      "text": "As our route turns back toward north Oxford, the first gatekeeper is not a wizard. He is a publisher's ten-year-old son. Susan Dagnall, working for Allen and Unwin, had encountered an incomplete typescript and encouraged Tolkien to finish it. Stanley Unwin then gave the story to young Rayner, whose approving report helped it reach print. The Hobbit appeared in 1937. Think of that chain: a reader, an unfinished manuscript, a child who liked it. An epic career can depend on very ordinary people paying attention. The sequel was less cooperative.",
+      "cues": [
+        {
+          "text": "As our route turns back toward north Oxford, the first gatekeeper is not a",
+          "startSeconds": 0,
+          "endSeconds": 4.823091247672253
+        },
+        {
+          "text": "wizard.",
+          "startSeconds": 4.823091247672253,
+          "endSeconds": 5.279329608938548
+        },
+        {
+          "text": "He is a publisher's ten-year-old son.",
+          "startSeconds": 5.279329608938548,
+          "endSeconds": 7.690875232774673
+        },
+        {
+          "text": "Susan Dagnall, working for Allen and Unwin, had encountered an incomplete",
+          "startSeconds": 7.690875232774673,
+          "endSeconds": 12.4487895716946
+        },
+        {
+          "text": "typescript and encouraged Tolkien to finish it.",
+          "startSeconds": 12.4487895716946,
+          "endSeconds": 15.512104283054002
+        },
+        {
+          "text": "Stanley Unwin then gave the story to young Rayner, whose approving report",
+          "startSeconds": 15.512104283054002,
+          "endSeconds": 20.27001862197393
+        },
+        {
+          "text": "helped it reach print.",
+          "startSeconds": 20.27001862197393,
+          "endSeconds": 21.70391061452514
+        },
+        {
+          "text": "The Hobbit appeared in 1937.",
+          "startSeconds": 21.70391061452514,
+          "endSeconds": 23.528864059590315
+        },
+        {
+          "text": "Think of that chain: a reader, an unfinished manuscript, a child who liked",
+          "startSeconds": 23.528864059590315,
+          "endSeconds": 28.351955307262568
+        },
+        {
+          "text": "it.",
+          "startSeconds": 28.351955307262568,
+          "endSeconds": 28.547486033519554
+        },
+        {
+          "text": "An epic career can depend on very ordinary people paying attention.",
+          "startSeconds": 28.547486033519554,
+          "endSeconds": 32.91433891992551
+        },
+        {
+          "text": "The sequel was less cooperative.",
+          "startSeconds": 32.91433891992551,
+          "endSeconds": 35
+        }
+      ]
+    },
+    {
+      "id": "de484aae-85de-40ce-84ca-0e5099c3789d",
+      "title": "A sequel with absolutely no sense of proportion",
+      "distanceKm": 8.25,
+      "audioSeconds": 30.075,
+      "text": "We are near the north Oxford neighbourhood where Tolkien lived; Northmoor Road lies ahead on this part of the track. The publisher wanted more hobbits. What developed was The Lord of the Rings, a project whose path to publication took roughly sixteen years. That is a spectacular way to misunderstand a request for more of the same. Here is the useful part: the finished thing was not the tidy thing anybody had ordered. But a long project needs more than stubbornness. It needs someone willing to hear the next chapter.",
+      "cues": [
+        {
+          "text": "We are near the north Oxford neighbourhood where Tolkien lived; Northmoor",
+          "startSeconds": 0,
+          "endSeconds": 4.296428571428571
+        },
+        {
+          "text": "Road lies ahead on this part of the track.",
+          "startSeconds": 4.296428571428571,
+          "endSeconds": 6.768346379647749
+        },
+        {
+          "text": "The publisher wanted more hobbits.",
+          "startSeconds": 6.768346379647749,
+          "endSeconds": 8.769422700587084
+        },
+        {
+          "text": "What developed was The Lord of the Rings, a project whose path to",
+          "startSeconds": 8.769422700587084,
+          "endSeconds": 12.595009784735812
+        },
+        {
+          "text": "publication took roughly sixteen years.",
+          "startSeconds": 12.595009784735812,
+          "endSeconds": 14.890362035225047
+        },
+        {
+          "text": "That is a spectacular way to misunderstand a request for more of the same.",
+          "startSeconds": 14.890362035225047,
+          "endSeconds": 19.2456457925636
+        },
+        {
+          "text": "Here is the useful part: the finished thing was not the tidy thing anybody",
+          "startSeconds": 19.2456457925636,
+          "endSeconds": 23.60092954990215
+        },
+        {
+          "text": "had ordered.",
+          "startSeconds": 23.60092954990215,
+          "endSeconds": 24.307191780821917
+        },
+        {
+          "text": "But a long project needs more than stubbornness.",
+          "startSeconds": 24.307191780821917,
+          "endSeconds": 27.13224070450098
+        },
+        {
+          "text": "It needs someone willing to hear the next chapter.",
+          "startSeconds": 27.13224070450098,
+          "endSeconds": 30.075
+        }
+      ]
+    },
+    {
+      "id": "bc0b5d16-4e77-4c1b-840b-47e4f88e7fbb",
+      "title": "Before the fellowship, the listeners",
+      "distanceKm": 9.9,
+      "audioSeconds": 32.975,
+      "text": "The centre is drawing closer again, with the Eagle and Child pub still ahead. Tolkien's circle, the Inklings, met to talk, drink and share work in progress. C. S. Lewis was among his closest friends. Forget the image of a genius downloading a perfect universe alone in a tower. These stories had listeners while they were still unfinished. That is my reading of the evidence, not a secret formula for greatness: sometimes another person gives an unfinished thing somewhere to go. Yet the story promised at our finish began before this circle.",
+      "cues": [
+        {
+          "text": "The centre is drawing closer again, with the Eagle and Child pub still",
+          "startSeconds": 0,
+          "endSeconds": 4.355188679245283
+        },
+        {
+          "text": "ahead.",
+          "startSeconds": 4.355188679245283,
+          "endSeconds": 4.728490566037736
+        },
+        {
+          "text": "Tolkien's circle, the Inklings, met to talk, drink and share work in",
+          "startSeconds": 4.728490566037736,
+          "endSeconds": 8.959245283018868
+        },
+        {
+          "text": "progress.",
+          "startSeconds": 8.959245283018868,
+          "endSeconds": 9.519198113207548
+        },
+        {
+          "text": "C.",
+          "startSeconds": 9.519198113207548,
+          "endSeconds": 9.643632075471698
+        },
+        {
+          "text": "S.",
+          "startSeconds": 9.643632075471698,
+          "endSeconds": 9.76806603773585
+        },
+        {
+          "text": "Lewis was among his closest friends.",
+          "startSeconds": 9.76806603773585,
+          "endSeconds": 12.007877358490566
+        },
+        {
+          "text": "Forget the image of a genius downloading a perfect universe alone in a",
+          "startSeconds": 12.007877358490566,
+          "endSeconds": 16.363066037735848
+        },
+        {
+          "text": "tower.",
+          "startSeconds": 16.363066037735848,
+          "endSeconds": 16.736367924528302
+        },
+        {
+          "text": "These stories had listeners while they were still unfinished.",
+          "startSeconds": 16.736367924528302,
+          "endSeconds": 20.531603773584905
+        },
+        {
+          "text": "That is my reading of the evidence, not a secret formula for greatness:",
+          "startSeconds": 20.531603773584905,
+          "endSeconds": 24.949009433962267
+        },
+        {
+          "text": "sometimes another person gives an unfinished thing somewhere to go.",
+          "startSeconds": 24.949009433962267,
+          "endSeconds": 29.117547169811324
+        },
+        {
+          "text": "Yet the story promised at our finish began before this circle.",
+          "startSeconds": 29.117547169811324,
+          "endSeconds": 32.975
+        }
+      ]
+    },
+    {
+      "id": "1f5e1e7b-b8ea-407d-8f3b-8c2fc3dd3727",
+      "title": "The book the publisher did not want",
+      "distanceKm": 11.55,
+      "audioSeconds": 30.775,
+      "text": "We have turned away from the centre toward the quieter northern finish. Before The Lord of the Rings, Tolkien offered his publisher material from his wider mythology. The response did not produce the book he hoped for. Among that material was the story of Beren and Luthien. Remember those names. A rejected manuscript can look like a dead end; here it held something the author kept returning to. The public wanted another hobbit adventure. His private attachment reached further back. To understand it, we must leave Oxford once more.",
+      "cues": [
+        {
+          "text": "We have turned away from the centre toward the quieter northern finish.",
+          "startSeconds": 0,
+          "endSeconds": 4.154039923954372
+        },
+        {
+          "text": "Before The Lord of the Rings, Tolkien offered his publisher material from",
+          "startSeconds": 4.154039923954372,
+          "endSeconds": 8.42509505703422
+        },
+        {
+          "text": "his wider mythology.",
+          "startSeconds": 8.42509505703422,
+          "endSeconds": 9.595247148288973
+        },
+        {
+          "text": "The response did not produce the book he hoped for.",
+          "startSeconds": 9.595247148288973,
+          "endSeconds": 12.579134980988593
+        },
+        {
+          "text": "Among that material was the story of Beren and Luthien.",
+          "startSeconds": 12.579134980988593,
+          "endSeconds": 15.797053231939161
+        },
+        {
+          "text": "Remember those names.",
+          "startSeconds": 15.797053231939161,
+          "endSeconds": 17.025712927756654
+        },
+        {
+          "text": "A rejected manuscript can look like a dead end; here it held something the",
+          "startSeconds": 17.025712927756654,
+          "endSeconds": 21.355275665399237
+        },
+        {
+          "text": "author kept returning to.",
+          "startSeconds": 21.355275665399237,
+          "endSeconds": 22.81796577946768
+        },
+        {
+          "text": "The public wanted another hobbit adventure.",
+          "startSeconds": 22.81796577946768,
+          "endSeconds": 25.333792775665398
+        },
+        {
+          "text": "His private attachment reached further back.",
+          "startSeconds": 25.333792775665398,
+          "endSeconds": 27.908127376425856
+        },
+        {
+          "text": "To understand it, we must leave Oxford once more.",
+          "startSeconds": 27.908127376425856,
+          "endSeconds": 30.775
+        }
+      ]
+    },
+    {
+      "id": "9e05d462-0183-4772-9a2d-a7fec7c802f1",
+      "title": "No Oxford wood can claim this scene",
+      "distanceKm": 13.2,
+      "audioSeconds": 35.625,
+      "text": "Heading north, imagine a wood, but not one beside this track. The place was Roos, in Yorkshire, while Tolkien was stationed near Hull. Edith danced for him in a clearing thick with hemlock. The Tolkien Society identifies that moment as an inspiration for Beren and Luthien. No invented speech is needed. Just two people and a remembered dance. We have followed degrees, examinations, readers and publishers. Underneath all that machinery was an experience small enough to miss, and strong enough to survive decades of rewriting. Now our two names are close.",
+      "cues": [
+        {
+          "text": "Heading north, imagine a wood, but not one beside this track.",
+          "startSeconds": 0,
+          "endSeconds": 3.972806215722121
+        },
+        {
+          "text": "The place was Roos, in Yorkshire, while Tolkien was stationed near Hull.",
+          "startSeconds": 3.972806215722121,
+          "endSeconds": 8.662020109689214
+        },
+        {
+          "text": "Edith danced for him in a clearing thick with hemlock.",
+          "startSeconds": 8.662020109689214,
+          "endSeconds": 12.178930530164534
+        },
+        {
+          "text": "The Tolkien Society identifies that moment as an inspiration for Beren and",
+          "startSeconds": 12.178930530164534,
+          "endSeconds": 16.99840036563071
+        },
+        {
+          "text": "Luthien.",
+          "startSeconds": 16.99840036563071,
+          "endSeconds": 17.519424131627055
+        },
+        {
+          "text": "No invented speech is needed.",
+          "startSeconds": 17.519424131627055,
+          "endSeconds": 19.4081352833638
+        },
+        {
+          "text": "Just two people and a remembered dance.",
+          "startSeconds": 19.4081352833638,
+          "endSeconds": 21.948126142595978
+        },
+        {
+          "text": "We have followed degrees, examinations, readers and publishers.",
+          "startSeconds": 21.948126142595978,
+          "endSeconds": 26.051188299817184
+        },
+        {
+          "text": "Underneath all that machinery was an experience small enough to miss, and",
+          "startSeconds": 26.051188299817184,
+          "endSeconds": 30.80553016453382
+        },
+        {
+          "text": "strong enough to survive decades of rewriting.",
+          "startSeconds": 30.80553016453382,
+          "endSeconds": 33.8014168190128
+        },
+        {
+          "text": "Now our two names are close.",
+          "startSeconds": 33.8014168190128,
+          "endSeconds": 35.625
+        }
+      ]
+    },
+    {
+      "id": "d5438476-fec8-4cde-91d3-cbc5adb858d9",
+      "title": "The names were not a costume",
+      "distanceKm": 14.85,
+      "audioSeconds": 27.475,
+      "text": "Wolvercote Cemetery is still ahead; this is the reveal to carry on the approach. Tolkien came to think of Edith as Luthien and himself as Beren. She died in 1971; he died in 1973. They are buried together there, with those names on their stone. The fantasy did not replace the real woman with an elf. A real woman had helped give the fantasy its heart. That is why we have ridden to a grave rather than a film location. The names point out of Middle-earth, back to Edith.",
+      "cues": [
+        {
+          "text": "Wolvercote Cemetery is still ahead; this is the reveal to carry on the",
+          "startSeconds": 0,
+          "endSeconds": 4.153887688984882
+        },
+        {
+          "text": "approach.",
+          "startSeconds": 4.153887688984882,
+          "endSeconds": 4.687958963282938
+        },
+        {
+          "text": "Tolkien came to think of Edith as Luthien and himself as Beren.",
+          "startSeconds": 4.687958963282938,
+          "endSeconds": 8.42645788336933
+        },
+        {
+          "text": "She died in 1971; he died in 1973.",
+          "startSeconds": 8.42645788336933,
+          "endSeconds": 10.444060475161988
+        },
+        {
+          "text": "They are buried together there, with those names on their stone.",
+          "startSeconds": 10.444060475161988,
+          "endSeconds": 14.241900647948166
+        },
+        {
+          "text": "The fantasy did not replace the real woman with an elf.",
+          "startSeconds": 14.241900647948166,
+          "endSeconds": 17.505669546436284
+        },
+        {
+          "text": "A real woman had helped give the fantasy its heart.",
+          "startSeconds": 17.505669546436284,
+          "endSeconds": 20.53207343412527
+        },
+        {
+          "text": "That is why we have ridden to a grave rather than a film location.",
+          "startSeconds": 20.53207343412527,
+          "endSeconds": 24.448596112311016
+        },
+        {
+          "text": "The names point out of Middle-earth, back to Edith.",
+          "startSeconds": 24.448596112311016,
+          "endSeconds": 27.475
+        }
+      ]
+    },
+    {
+      "id": "4599d8fc-79c2-4a73-8615-557e211f5ff1",
+      "title": "Bring something back from the quest",
+      "distanceKm": 16.15,
+      "audioSeconds": 30.25,
+      "text": "Our track ends beside the cemetery, not at the grave itself. You can finish without looking down or touching a thing. At Exeter we met a student changing course. Along the way, a blank page became a hobbit, readers helped an unfinished book, and a remembered dance entered a legend. At the end stand Edith and Ronald, Luthien and Beren. Here is what I take from their story: making a world need not mean escaping this one. It can mean noticing what you want to keep. Take the last stretch gently. Bring something back.",
+      "cues": [
+        {
+          "text": "Our track ends beside the cemetery, not at the grave itself.",
+          "startSeconds": 0,
+          "endSeconds": 3.572834645669291
+        },
+        {
+          "text": "You can finish without looking down or touching a thing.",
+          "startSeconds": 3.572834645669291,
+          "endSeconds": 6.9074803149606305
+        },
+        {
+          "text": "At Exeter we met a student changing course.",
+          "startSeconds": 6.9074803149606305,
+          "endSeconds": 9.468011811023622
+        },
+        {
+          "text": "Along the way, a blank page became a hobbit, readers helped an unfinished",
+          "startSeconds": 9.468011811023622,
+          "endSeconds": 13.814960629921261
+        },
+        {
+          "text": "book, and a remembered dance entered a legend.",
+          "startSeconds": 13.814960629921261,
+          "endSeconds": 16.55413385826772
+        },
+        {
+          "text": "At the end stand Edith and Ronald, Luthien and Beren.",
+          "startSeconds": 16.55413385826772,
+          "endSeconds": 19.71013779527559
+        },
+        {
+          "text": "Here is what I take from their story: making a world need not mean escaping",
+          "startSeconds": 19.71013779527559,
+          "endSeconds": 24.176181102362204
+        },
+        {
+          "text": "this one.",
+          "startSeconds": 24.176181102362204,
+          "endSeconds": 24.7121062992126
+        },
+        {
+          "text": "It can mean noticing what you want to keep.",
+          "startSeconds": 24.7121062992126,
+          "endSeconds": 27.27263779527559
+        },
+        {
+          "text": "Take the last stretch gently.",
+          "startSeconds": 27.27263779527559,
+          "endSeconds": 28.999507874015748
+        },
+        {
+          "text": "Bring something back.",
+          "startSeconds": 28.999507874015748,
+          "endSeconds": 30.25
+        }
+      ]
+    }
+  ]
+}
