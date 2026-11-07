@@ -34,6 +34,11 @@ def elevation(lng,lat):
 def story(title,lat,lng,text): return {'title':title,'lat':lat,'lng':lng,'text':text}
 
 routes=[
+ dict(slug='oxford-last-page',name='Oxford: The Names at the End of the Quest',theme='Fantasy & real lives',speed=25,
+ description="Ride through Tolkien's Oxford to a quiet grave, and discover why the creator of Middle-earth put two fictional lovers' names on a real stone.",
+ contentNote='Literary history, wartime loss and bereavement, without graphic detail. An indoor interpretation, not outdoor navigation; private homes are not visitor attractions.',
+ waypoints=[[-1.2562,51.7538],[-1.2520,51.7509],[-1.2448,51.7510],[-1.2310,51.7593],[-1.2305,51.7740],[-1.2578,51.7753],[-1.2601,51.7710],[-1.2614,51.7585],[-1.2750,51.7660],[-1.2780,51.7840],[-1.2735,51.7910]],
+ sources=[{'title':'The Tolkien Society biography — archived 23 May 2024','url':'https://web.archive.org/web/20240523115311/https://www.tolkiensociety.org/author/biography/'}],stories=[]),
  dict(slug='whitechapel-1888',name='Whitechapel 1888: Beyond the Ripper Legend',theme='History & mystery',speed=24,
  description='A non-graphic East End loop about the women, the neighbourhood and the unsolved 1888 crimes. A short, reflective historical ride.',
  contentNote='Discusses historical murders without graphic detail; focuses on victims and uncertainty.',
