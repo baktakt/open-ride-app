@@ -734,4 +734,19 @@ body.workout-page {
   from { opacity: 0; transform: translate(-50%, -6px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
-.trainer-control-notice { padding: 8px 16px; color: #ffe2a6; background: #302b20; margin: 0; }
+.trainer-control-notice {
+  /* Feedback must never reflow the graph, gauges or pause/end controls. */
+  position: fixed;
+  top: 76px;
+  right: 16px;
+  z-index: 90;
+  width: min(420px, calc(100vw - 32px));
+  padding: 10px 14px;
+  color: #ffe2a6;
+  background: #302b20;
+  border: 1px solid #76613a;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px #0006;
+  margin: 0;
+  pointer-events: none;
+}

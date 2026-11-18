@@ -889,7 +889,7 @@ export default function RoutePage({ isVisible = true }) {
             )}
 
             <div className="route-complete-actions">
-              <button className="route-complete-btn secondary" onClick={() => navigate('/')}>
+              <button className="route-complete-btn secondary" onClick={() => { endSession(); navigate('/'); }}>
                 Back to Home
               </button>
               <button className="route-complete-btn primary" onClick={handleRideAgain}>

@@ -16,7 +16,7 @@ export function startTrainerControl({ send, onError = () => {}, schedule = setTi
 }
 
 // ant-plus-next resolves a write when queued; its callback carries the radio ACK.
-export function sendAntCommand(send, { schedule = setTimeout, cancel = clearTimeout, timeoutMs = 5000 } = {}) {
+export function sendAntCommand(send, { schedule = setTimeout, cancel = clearTimeout, timeoutMs = 5000, onUncertain = () => {}, signal } = {}) {
   return new Promise(resolve => {
     let settled = false;
     let timer;
@@ -24,13 +24,22 @@ export function sendAntCommand(send, { schedule = setTimeout, cancel = clearTime
       if (settled) return;
       settled = true;
       cancel(timer);
+      signal?.removeEventListener('abort', aborted);
       resolve(success === true);
     };
-    timer = schedule(() => finish(false), timeoutMs);
-    try {
-      Promise.resolve(send(finish)).catch(() => finish(false));
-    } catch {
+    const aborted = () => finish(false);
+    const uncertain = () => {
+      if (settled) return;
+      onUncertain();
       finish(false);
+    };
+    timer = schedule(uncertain, timeoutMs);
+    signal?.addEventListener('abort', aborted, { once: true });
+    if (signal?.aborted) { aborted(); return; }
+    try {
+      Promise.resolve(send(finish)).catch(uncertain);
+    } catch {
+      uncertain();
     }
   });
 }
